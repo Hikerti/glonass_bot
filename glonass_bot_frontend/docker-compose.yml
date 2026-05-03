@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  admin-panel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://glonass-bot.ru/api}
+        VITE_APP_ENV: production
+    container_name: admin-panel
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    networks:
+      - glonass_cluster
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.admin.rule=Host(`admin.glonass-bot.ru`)"
+      - "traefik.http.routers.admin.entrypoints=websecure"
+      - "traefik.http.routers.admin.tls.certresolver=myresolver"
+
+  # Development версия с hot reload
+  admin-panel-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: admin-panel-dev
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./index.html:/app/index.html
+      - ./vite.config.ts:/app/vite.config.ts
+      - ./tailwind.config.js:/app/tailwind.config.js
+      - ./postcss.config.js:/app/postcss.config.js
+      - /app/node_modules
+    environment:
+      - VITE_API_BASE_URL=http://localhost:3000
+      - VITE_APP_ENV=development
+    networks:
+      - glonass_cluster
+    profiles:
+      - dev
+
+networks:
+  glonass_cluster:
+    driver: bridge

@@ -1,0 +1,32 @@
+import { PostType } from '@shared/types/common.types.ts';
+
+export interface PostDTO {
+    id: string;
+    type: PostType;
+    text: string;
+    interval: string;
+    date: string;
+    media: string[];
+    active: boolean;
+    postToWall?: boolean;
+    postToMessage?: boolean;
+    createdAt: string;
+}
+
+export interface PostCreateDTO {
+    type: PostType;
+    text: string;
+    interval: string;
+    date: string;
+    media: string[];
+    active: boolean;
+    postToWall?: boolean;
+    postToMessage?: boolean;
+}
+
+export type PostUpdateDTO = Partial<PostCreateDTO>;
+
+export interface MediaUploadResponse {
+    url: string;
+    key: string;
+}

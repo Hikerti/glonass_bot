@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "entryFile": "main",
+  "compilerOptions": {
+    "assets": [],
+    "watchAssets": true
+  },
+  "projects": {
+    "bot": {
+      "type": "application",
+      "root": "src/bot",
+      "entryFile": "main",
+      "sourceRoot": "src/bot",
+      "compilerOptions": {
+        "outDir": "dist/bot"
+      }
+    },
+    "domains": {
+      "type": "library",
+      "root": "libs/domains",
+      "entryFile": "index",
+      "sourceRoot": "libs/domains/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/domains/tsconfig.lib.json"
+      }
+    },
+    "gate": {
+      "type": "application",
+      "root": "src/gate",
+      "entryFile": "main",
+      "sourceRoot": "src/gate",
+      "compilerOptions": {
+        "outDir": "dist/gate"
+      }
+    },
+    "infrastract": {
+      "type": "library",
+      "root": "libs/infrastract",
+      "entryFile": "index",
+      "sourceRoot": "libs/infrastract/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/infrastract/tsconfig.lib.json"
+      }
+    },
+    "integrations": {
+      "type": "library",
+      "root": "libs/integrations",
+      "entryFile": "index",
+      "sourceRoot": "libs/integrations/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/integrations/tsconfig.lib.json"
+      }
+    },
+    "shared": {
+      "type": "library",
+      "root": "libs/shared",
+      "entryFile": "index",
+      "sourceRoot": "libs/shared/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/shared/tsconfig.lib.json"
+      }
+    },
+    "systems": {
+      "type": "library",
+      "root": "libs/systems",
+      "entryFile": "index",
+      "sourceRoot": "libs/systems/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/systems/tsconfig.lib.json"
+      }
+    },
+    "worker": {
+      "type": "application",
+      "root": "apps/worker",
+      "entryFile": "main",
+      "sourceRoot": "apps/worker/src",
+      "compilerOptions": {
+        "outDir": "dist/worker",
+        "tsConfigPath": "apps/worker/tsconfig.app.json"
+      }
+    }
+  },
+  "monorepo": true,
+  "root": "src"
+}

@@ -1,0 +1,82 @@
+name: "infrastructure"
+
+networks:
+  glonass_cluster:
+    external: true
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: ${DATABASE_HOST}
+    environment:
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_DB}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${DATABASE_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/setup.sql:/docker-entrypoint-initdb.d/setup.sql:ro
+    networks:
+      - glonass_cluster
+
+  adminer:
+    image: adminer:5.3.0-standalone
+    container_name: adminer
+    depends_on:
+      - postgres
+    ports:
+      - ${DATABASE_UI_PORT}:8080
+    networks:
+      - glonass_cluster
+
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 5
+      timeout: 5s
+    networks:
+      - glonass_cluster
+
+  minio:
+    image: minio/minio
+    container_name: minio
+    environment:
+      MINIO_ROOT_USER: ${S3_USER}
+      MINIO_ROOT_PASSWORD: ${S3_PASSWORD}
+    command: server /data --console-address ":${S3_UI_PORT}" --address ":${S3_PORT}"
+    ports:
+      - "${S3_PORT}:${S3_PORT}"
+      - "${S3_UI_PORT}:${S3_UI_PORT}"
+    healthcheck:
+      test: ["CMD", "mc", "alias", "set", "local", "http://localhost:${S3_PORT}"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
+    volumes:
+      - ../.deploy/data/minio:/data
+    networks:
+      - glonass_cluster
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "234:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro 
+    depends_on:
+      - minio
+      - adminer
+    networks:
+      - glonass_cluster
+
+volumes:
+  postgres_data:

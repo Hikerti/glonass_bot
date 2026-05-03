@@ -1,0 +1,1 @@
+docker compose -f docker/docker-infrastructure.yml -f docker/docker-app.yml --env-file envs/local/gate/app.env --env-file envs/local/gate/mail.env --env-file envs/local/gate/vk.env --env-file envs/local/database/minio.env --env-file envs/local/database/postgres.env --env-file envs/local/database/redis.env build

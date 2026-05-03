@@ -1,0 +1,93 @@
+name: "app"
+
+networks:
+  glonass_cluster:
+    external: true
+
+x-app: &app
+  restart: unless-stopped
+  volumes:
+    - ../envs:/app/envs:ro
+  deploy:
+    resources:
+      limits:
+        cpus: "1.0"
+        memory: 1.5G
+      reservations:
+        cpus: "0.25"
+        memory: 512M
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "100m"
+      max-file: "3"
+
+
+x-app-build: &app-build
+  context: ..
+  dockerfile: ./docker/gate/Dockerfile
+
+x-common-env: &common-env
+  RUNNING_IN_DOCKER: "true"
+  DATABASE_URL: ${DATABASE_URL}
+  S3_URL: ${S3_URL}
+  S3_USER: ${S3_USER}
+  S3_PASSWORD: ${S3_PASSWORD}
+  REDIS_HOST: redis
+  GATE_URL: http://gate:3000
+
+services:
+  gate:
+    <<: *app
+    container_name: gate
+    build:
+      <<: *app-build
+      args:
+        SERVICE_NAME: gate
+    environment:
+      <<: *common-env
+    command: [ "bun", "dist/src/gate/main.js" ]
+    depends_on:
+      - postgres
+      - minio
+      - redis
+      - nginx
+    networks:
+      - glonass_cluster
+
+  worker:
+    <<: *app
+    container_name: worker
+    build:
+      <<: *app-build
+      args:
+        SERVICE_NAME: worker
+    command: [ "bun", "dist/worker/apps/worker/src/main.js" ]
+    environment:
+      <<: *common-env
+    depends_on:
+      - gate
+      - redis
+      - minio
+    networks:
+      - glonass_cluster
+
+  bot:
+    <<: *app
+    container_name: bot
+    profiles:
+      - telegram
+    build:
+      <<: *app-build
+      args:
+        SERVICE_NAME: bot
+    command: [ "bun", "dist/src/bot/main.js" ]
+    environment:
+      <<: *common-env
+    depends_on:
+      - postgres
+      - redis
+      - minio
+      - nginx
+    networks:
+      - glonass_cluster
