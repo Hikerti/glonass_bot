@@ -5,6 +5,7 @@ import { Input } from '../../shared/ui/Input/Input';
 import { Select } from '../../shared/ui/Select/Select';
 import { Button } from '../../shared/ui/Button/Button';
 import { MediaUpload } from '../../features/post/media-upload/MediaUpload';
+import { postApi } from '../../entities/post/api/postApi';
 
 interface PostFormProps {
     post?: PostDTO | null;
@@ -24,6 +25,9 @@ export const PostForm: React.FC<PostFormProps> = ({ post, onSubmit, onCancel }) 
         postToMessage: false,
     });
     const [loading, setLoading] = useState(false);
+    const [aiPrompt, setAiPrompt] = useState('');
+    const [aiLoading, setAiLoading] = useState(false);
+    const [aiError, setAiError] = useState<string | null>(null);
 
     useEffect(() => {
         if (post) {
@@ -67,6 +71,31 @@ export const PostForm: React.FC<PostFormProps> = ({ post, onSubmit, onCancel }) 
         }));
     };
 
+    const handleGenerateText = async () => {
+        const prompt = aiPrompt.trim();
+
+        if (!prompt) {
+            setAiError('Введите промпт для генерации текста');
+            return;
+        }
+
+        setAiLoading(true);
+        setAiError(null);
+
+        try {
+            const response = await postApi.generateText({
+                prompt,
+                channel: POST_TYPE_MAPPING[formData.type],
+            });
+            setFormData(prev => ({ ...prev, text: response.text }));
+        } catch (error) {
+            console.error('Error generating post text:', error);
+            setAiError('Не удалось сгенерировать текст. Проверьте AI конфиг и попробуйте снова.');
+        } finally {
+            setAiLoading(false);
+        }
+    };
+
     const postTypeOptions = Object.entries(POST_TYPE_MAPPING)
         .filter(([key]) => !DISABLED_POST_TYPES.includes(key as PostType))
         .map(([key, label]) => ({
@@ -93,6 +122,30 @@ export const PostForm: React.FC<PostFormProps> = ({ post, onSubmit, onCancel }) 
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                     Текст поста *
                 </label>
+                <div className="mb-3 rounded-lg border border-blue-100 bg-blue-50 p-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        AI промпт
+                    </label>
+                    <textarea
+                        value={aiPrompt}
+                        onChange={(e) => setAiPrompt(e.target.value)}
+                        rows={3}
+                        placeholder="Например: напиши вежливое уведомление о необходимости обновить данные по ГЛОНАСС"
+                        className="w-full px-3 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white"
+                    />
+                    {aiError && <p className="mt-2 text-sm text-red-600">{aiError}</p>}
+                    <div className="mt-2 flex justify-end">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            loading={aiLoading}
+                            onClick={handleGenerateText}
+                        >
+                            Сгенерировать текст
+                        </Button>
+                    </div>
+                </div>
                 <textarea
                     value={formData.text}
                     onChange={(e) => setFormData({ ...formData, text: e.target.value })}

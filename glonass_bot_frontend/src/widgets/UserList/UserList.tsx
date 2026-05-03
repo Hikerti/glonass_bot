@@ -23,11 +23,13 @@ export const UserList: React.FC<UserListProps> = ({
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const loadUsers = useCallback(async (pageNum: number, reset = false) => {
-        if (loading) return;
+    const loadUsers = useCallback(async (pageNum: number, reset = false): Promise<boolean> => {
+        if (loading) return false;
 
         setLoading(true);
+        setError(null);
         try {
             const data = await userApi.getList({
                 page: pageNum,
@@ -37,8 +39,12 @@ export const UserList: React.FC<UserListProps> = ({
             });
             setUsers(prev => reset ? data.items : [...prev, ...data.items]);
             setHasMore(!data.isLast);
+            return true;
         } catch (error) {
             console.error('Error loading users:', error);
+            setError('Не удалось загрузить пользователей');
+            setHasMore(false);
+            return false;
         } finally {
             setLoading(false);
         }
@@ -53,8 +59,9 @@ export const UserList: React.FC<UserListProps> = ({
 
     const handleLoadMore = useCallback(() => {
         const nextPage = page + 1;
-        setPage(nextPage);
-        loadUsers(nextPage);
+        void loadUsers(nextPage).then((success) => {
+            if (success) setPage(nextPage);
+        });
     }, [page, loadUsers]);
 
     const handleDelete = async (id: string) => {
@@ -101,6 +108,10 @@ export const UserList: React.FC<UserListProps> = ({
             <div ref={loadMoreRef} className="h-10">
                 {loading && <Loader />}
             </div>
+
+            {error && (
+                <p className="text-center text-red-600 py-4">{error}</p>
+            )}
 
             {!hasMore && users.length > 0 && (
                 <p className="text-center text-gray-500 py-4">Все пользователи загружены</p>

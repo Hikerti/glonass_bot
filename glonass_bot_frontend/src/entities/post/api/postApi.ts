@@ -1,7 +1,14 @@
 import { api, apiMultipart } from '../../../shared/api/axios';
 import { API_ENDPOINTS } from '../../../shared/api/config';
 import { PaginationType, PostType } from '../../../shared/types/common.types';
-import { PostDTO, PostCreateDTO, PostUpdateDTO, MediaUploadResponse } from '../types/post.types';
+import {
+    GeneratePostTextDTO,
+    GeneratePostTextResponseDTO,
+    MediaUploadResponse,
+    PostCreateDTO,
+    PostDTO,
+    PostUpdateDTO,
+} from '../types/post.types';
 
 interface GetPostsParams {
     page: number;
@@ -54,6 +61,11 @@ export const postApi = {
 
     deleteMedia: async (key: string) => {
         const { data } = await api.delete(`/media/${key}`);
+        return data;
+    },
+
+    generateText: async (dto: GeneratePostTextDTO) => {
+        const { data } = await api.post<GeneratePostTextResponseDTO>('/ai/generate-post', dto);
         return data;
     },
 };

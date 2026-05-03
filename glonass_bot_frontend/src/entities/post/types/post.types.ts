@@ -30,3 +30,12 @@ export interface MediaUploadResponse {
     url: string;
     key: string;
 }
+
+export interface GeneratePostTextDTO {
+    prompt: string;
+    channel?: string;
+}
+
+export interface GeneratePostTextResponseDTO {
+    text: string;
+}

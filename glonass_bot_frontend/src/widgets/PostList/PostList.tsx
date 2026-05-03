@@ -17,11 +17,13 @@ export const PostList: React.FC<PostListProps> = ({ type, onEdit, refreshTrigger
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const loadPosts = useCallback(async (pageNum: number, reset = false) => {
-        if (loading) return;
+    const loadPosts = useCallback(async (pageNum: number, reset = false): Promise<boolean> => {
+        if (loading) return false;
 
         setLoading(true);
+        setError(null);
         try {
             const params = {
                 page: pageNum,
@@ -31,8 +33,12 @@ export const PostList: React.FC<PostListProps> = ({ type, onEdit, refreshTrigger
             const data = await postApi.getList(params);
             setPosts(prev => reset ? data.items : [...prev, ...data.items]);
             setHasMore(!data.isLast);
+            return true;
         } catch (error) {
             console.error('Error loading posts:', error);
+            setError('Не удалось загрузить посты');
+            setHasMore(false);
+            return false;
         } finally {
             setLoading(false);
         }
@@ -47,8 +53,9 @@ export const PostList: React.FC<PostListProps> = ({ type, onEdit, refreshTrigger
 
     const handleLoadMore = useCallback(() => {
         const nextPage = page + 1;
-        setPage(nextPage);
-        loadPosts(nextPage);
+        void loadPosts(nextPage).then((success) => {
+            if (success) setPage(nextPage);
+        });
     }, [page, loadPosts]);
 
     const handleDelete = async (id: string) => {
@@ -87,6 +94,10 @@ export const PostList: React.FC<PostListProps> = ({ type, onEdit, refreshTrigger
             <div ref={loadMoreRef} className="h-10">
                 {loading && <Loader />}
             </div>
+
+            {error && (
+                <p className="text-center text-red-600 py-4">{error}</p>
+            )}
 
             {!hasMore && posts.length > 0 && (
                 <p className="text-center text-gray-500 py-4">Все посты загружены</p>

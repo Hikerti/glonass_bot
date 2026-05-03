@@ -4,6 +4,8 @@ import { AuthModule } from './auth/auth.module';
 import { PostModule } from './post/post.module';
 import {ConfigModule} from "@nestjs/config";
 import {TypeormModule} from "@integrations";
+import { AiModule } from './ai/ai.module';
+import { MediaModule } from './media/media.module';
 
 @Module({
   imports: [
@@ -11,6 +13,7 @@ import {TypeormModule} from "@integrations";
         isGlobal: true,
         envFilePath: [
             'envs/local/gate/app.env',
+            'envs/local/bot/bot.env',
             'envs/local/database/postgres.env',
             'envs/local/database/minio.env',
         ],
@@ -20,6 +23,10 @@ import {TypeormModule} from "@integrations";
       PostModule,
 
       TypeormModule,
+
+      AiModule,
+
+      MediaModule,
   ],
 })
 export class AppModule {}

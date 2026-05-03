@@ -1,0 +1,184 @@
+name: tg-glonass
+
+networks:
+  glonass_cluster:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  minio_data:
+
+x-backend-env-files: &backend-env-files
+  - ./tg-glonass-bot-main/envs/local/gate/app.env
+  - ./tg-glonass-bot-main/envs/local/bot/bot.env
+  - ./tg-glonass-bot-main/envs/local/gate/mail.env
+  - ./tg-glonass-bot-main/envs/local/gate/vk.env
+  - ./tg-glonass-bot-main/envs/local/database/postgres.env
+  - ./tg-glonass-bot-main/envs/local/database/minio.env
+  - ./tg-glonass-bot-main/envs/local/database/redis.env
+
+x-backend-env: &backend-env
+  RUNNING_IN_DOCKER: "true"
+  GATE_HTTP_PORT: "3000"
+  GATE_URL: http://gate:3000
+  REDIS_HOST: redis
+  S3_INTERNAL_ENDPOINT: http://minio:3456
+  S3_PUBLIC_ENDPOINT: ${PUBLIC_BASE_URL:-http://glonass-bot.ru}/local
+
+x-backend-build: &backend-build
+  context: ./tg-glonass-bot-main
+  dockerfile: ./docker/gate/Dockerfile
+
+x-backend-common: &backend-common
+  restart: unless-stopped
+  networks:
+    - glonass_cluster
+  logging:
+    driver: json-file
+    options:
+      max-size: 100m
+      max-file: "3"
+
+services:
+  database:
+    image: postgres:17
+    restart: unless-stopped
+    env_file:
+      - ./tg-glonass-bot-main/envs/local/database/postgres.env
+    environment:
+      POSTGRES_USER: ${DATABASE_USER:-glonass}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-glonass123}
+      POSTGRES_DB: ${DATABASE_DB:-local}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./tg-glonass-bot-main/docker/postgres/setup.sql:/docker-entrypoint-initdb.d/setup.sql:ro
+    networks:
+      - glonass_cluster
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-glonass} -d ${DATABASE_DB:-local}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    networks:
+      - glonass_cluster
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio
+    restart: unless-stopped
+    env_file:
+      - ./tg-glonass-bot-main/envs/local/database/minio.env
+    environment:
+      MINIO_ROOT_USER: ${S3_USER:-useradmin}
+      MINIO_ROOT_PASSWORD: ${S3_PASSWORD:-passwordminio}
+    command: server /data --console-address ":3600" --address ":3456"
+    volumes:
+      - minio_data:/data
+    networks:
+      - glonass_cluster
+    healthcheck:
+      test: ["CMD", "mc", "alias", "set", "local", "http://localhost:3456"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  adminer:
+    image: adminer:5.3.0-standalone
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - glonass_cluster
+
+  gate:
+    <<: *backend-common
+    build:
+      <<: *backend-build
+      args:
+        SERVICE_NAME: gate
+    env_file: *backend-env-files
+    environment:
+      <<: *backend-env
+    command: ["bun", "dist/src/gate/main.js"]
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  worker:
+    <<: *backend-common
+    build:
+      <<: *backend-build
+      args:
+        SERVICE_NAME: worker
+    env_file: *backend-env-files
+    environment:
+      <<: *backend-env
+    command: ["bun", "dist/worker/apps/worker/src/main.js"]
+    depends_on:
+      gate:
+        condition: service_started
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  bot:
+    <<: *backend-common
+    profiles:
+      - telegram
+    build:
+      <<: *backend-build
+      args:
+        SERVICE_NAME: bot
+    env_file:
+      - ./tg-glonass-bot-main/envs/local/bot/bot.env
+      - ./tg-glonass-bot-main/envs/local/gate/app.env
+      - ./tg-glonass-bot-main/envs/local/database/redis.env
+    environment:
+      <<: *backend-env
+    command: ["bun", "dist/src/bot/main.js"]
+    depends_on:
+      gate:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./glonass_bot_frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
+        VITE_APP_ENV: production
+    restart: unless-stopped
+    networks:
+      - glonass_cluster
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      - frontend
+      - gate
+      - minio
+      - adminer
+    networks:
+      - glonass_cluster
