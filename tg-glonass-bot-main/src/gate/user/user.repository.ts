@@ -28,12 +28,16 @@ export class UserRepository {
 
     async unsubscribeByEmail(email: string) {
         const user = await this.userRepository.findOne({ where: { email } });
-        if (user) {
-            user.email = null;
-            user.typeEmail = null;
-            await this.userRepository.save(user);
+
+        if (!user) {
+            return null;
         }
+
+        await this.userRepository.delete(user.id);
+
+        return UserDTO.fromModel(user);
     }
+    
     async createMany(users: UserDTO.Create[]): Promise<UserDTO[]> {
         const userEntities = users.map(u => this.userRepository.create({
             name: u.name,

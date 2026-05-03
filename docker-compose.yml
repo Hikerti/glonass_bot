@@ -23,7 +23,8 @@ x-backend-env: &backend-env
   GATE_URL: http://gate:3000
   REDIS_HOST: redis
   S3_INTERNAL_ENDPOINT: http://minio:3456
-  S3_PUBLIC_ENDPOINT: ${PUBLIC_BASE_URL:-http://glonass-bot.ru}/local
+  PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://188.17.152.95}
+  S3_PUBLIC_ENDPOINT: ${PUBLIC_BASE_URL:-http://188.17.152.95}/local
 
 x-backend-build: &backend-build
   context: ./tg-glonass-bot-main

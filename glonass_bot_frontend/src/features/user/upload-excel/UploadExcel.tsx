@@ -99,18 +99,15 @@ export const UploadExcel: React.FC<UploadExcelProps> = ({ onSuccess }) => {
                     onChange={handleFileChange}
                     disabled={loading}
                     className="hidden"
-                    id="excel-upload"
                 />
 
-                <label htmlFor="excel-upload">
-                    <Button
-                        variant="secondary"
-                        loading={loading}
-                        className="cursor-pointer inline-block"
-                    >
-                        📤 Импорт из Excel
-                    </Button>
-                </label>
+                <Button
+                    variant="secondary"
+                    loading={loading}
+                    onClick={() => fileInputRef.current?.click()}
+                >
+                    📤 Импорт из Excel
+                </Button>
 
                 <Button
                     variant="secondary"

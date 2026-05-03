@@ -11,7 +11,7 @@
     "start": "nest start",
     "build:bot": "nest build bot && tsc-alias -p tsconfig.json",
     "build:gate": "nest build gate && tsc-alias -p tsconfig.json",
-    "build:worker": "nest build worker && tsc-alias -p tsconfig.json",
+    "build:worker": "nest build worker && tsc-alias -p apps/worker/tsconfig.app.json",
     "start:dev:bot": "nest start bot --watch",
     "start:dev:gate": "node -r ts-node/register -r tsconfig-paths/register ./node_modules/@nestjs/cli/bin/nest.js start gate --watch",
     "start:dev:worker": "nest start worker --watch",

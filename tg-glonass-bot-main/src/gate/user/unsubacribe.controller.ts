@@ -15,27 +15,66 @@ export class UnsubscribeController {
     async unsubscribe(
         @Query('email') email: string,
         @Query('token') token: string,
-        @Res() res: Response
+        @Res() res: Response,
     ) {
-        if (!email || !token) throw new BadRequestException('Missing parameters');
+        if (!email || !token) {
+            throw new BadRequestException('Missing parameters');
+        }
+
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
 
         try {
             const secret = this.config.get('JWT_SECRET') || 'fallback_secret';
-            const expectedToken = crypto.createHmac('sha256', secret).update(email).digest('hex').substring(0, 12);
+            const expectedToken = crypto
+                .createHmac('sha256', secret)
+                .update(email)
+                .digest('hex')
+                .substring(0, 12);
 
             if (token !== expectedToken) {
                 throw new Error('Invalid unsubscribe token');
             }
 
-            await this.userService.unsubscribeByEmail(email);
-            return res.send(`
-                <div style="text-align: center; margin-top: 50px; font-family: sans-serif;">
-                    <h2>Р’С‹ СѓСЃРїРµС€РЅРѕ РѕС‚РїРёСЃР°РЅС‹</h2>
-                    <p>Email ${email} Р±РѕР»СЊС€Рµ РЅРµ РїРѕР»СѓС‡РёС‚ РЅР°С€РёС… РїРёСЃРµРј.</p>
+            const deletedUser = await this.userService.unsubscribeByEmail(email);
+
+if (!deletedUser) {
+    return res.send(`
+        <!doctype html>
+        <html lang="ru">
+            <head>
+                <meta charset="utf-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1" />
+                <title>Отписка от рассылки</title>
+            </head>
+            <body style="margin: 0; font-family: Arial, sans-serif; background: #f5f5f5;">
+                <div style="max-width: 560px; margin: 80px auto; padding: 32px; background: #fff; border-radius: 16px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,.08);">
+                    <h2 style="margin: 0 0 16px;">Вы уже отписаны</h2>
+                    <p style="font-size: 16px; color: #444;">
+                        Email <b>${email}</b> не найден в базе рассылки.
+                    </p>
                 </div>
+            </body>
+        </html>
+    `)
+}} catch (e) {
+            return res.status(400).send(`
+                <!doctype html>
+                <html lang="ru">
+                    <head>
+                        <meta charset="utf-8" />
+                        <meta name="viewport" content="width=device-width, initial-scale=1" />
+                        <title>Ошибка отписки</title>
+                    </head>
+                    <body style="margin: 0; font-family: Arial, sans-serif; background: #f5f5f5;">
+                        <div style="max-width: 560px; margin: 80px auto; padding: 32px; background: #fff; border-radius: 16px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,.08);">
+                            <h2 style="margin: 0 0 16px;">Ошибка отписки</h2>
+                            <p style="font-size: 16px; color: #444;">
+                                Ссылка недействительна или устарела.
+                            </p>
+                        </div>
+                    </body>
+                </html>
             `);
-        } catch (e) {
-            return res.status(400).send('РћС€РёР±РєР° РѕС‚РїРёСЃРєРё: РЅРµРІРµСЂРЅР°СЏ СЃСЃС‹Р»РєР°.');
         }
     }
 }

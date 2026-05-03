@@ -73,7 +73,7 @@ export class MailService extends AbstractNotificationService {
             if (!user.email) continue;
 
             const hash = this.getUnsubscribeHash(user.email);
-            const unsubscribeUrl = `${gateUrl}/mail-actions/unsubscribe?email=${encodeURIComponent(user.email)}&token=${hash}`;
+            const unsubscribeUrl = `http://188.17.152.95/api/mail-actions/unsubscribe?email=${encodeURIComponent(user.email)}&token=${hash}`;
 
             try {
                 await transporter.sendMail({

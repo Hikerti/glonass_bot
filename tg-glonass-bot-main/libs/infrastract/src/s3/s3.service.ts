@@ -8,6 +8,7 @@ import {
     PutBucketPolicyCommand,
     S3Client
 } from "@aws-sdk/client-s3";
+import * as crypto from 'crypto';
 
 interface S3UploadData {
     buffer: Buffer;
@@ -54,7 +55,12 @@ export class S3Service implements OnModuleInit {
     }
 
     async uploadFile(file: S3UploadData): Promise<{ url: string; key: string }> {
-    const fileName = `${Date.now()}-${file.originalname}`;
+    const extension = file.originalname.includes('.')
+        ? file.originalname.split('.').pop()?.toLowerCase()
+        : undefined;
+
+    const safeExtension = extension ? `.${extension}` : '';
+    const fileName = `${Date.now()}-${crypto.randomUUID()}${safeExtension}`;
 
     try {
         await this.s3.send(
@@ -67,17 +73,15 @@ export class S3Service implements OnModuleInit {
             }),
         );
 
-        // ВАЖНО: Исправьте формирование URL
-        const cleanPublicEndpoint = this.publicEndpoint.endsWith('/') 
-            ? this.publicEndpoint.slice(0, -1) 
+        const cleanPublicEndpoint = this.publicEndpoint.endsWith('/')
+            ? this.publicEndpoint.slice(0, -1)
             : this.publicEndpoint;
-        
-        // Уберите bucket из URL если nginx уже включает его в путь
+
         const publicUrl = `${cleanPublicEndpoint}/${fileName}`;
-        
+
         this.logger.log(`File uploaded: ${fileName}`);
         this.logger.log(`Public URL: ${publicUrl}`);
-        
+
         return {
             url: publicUrl,
             key: fileName,
@@ -137,11 +141,11 @@ export class S3Service implements OnModuleInit {
     }
 
     async getFileUrl(key: string): Promise<string> {
-        const cleanPublicEndpoint = this.publicEndpoint.endsWith('/') 
-            ? this.publicEndpoint.slice(0, -1) 
+        const cleanPublicEndpoint = this.publicEndpoint.endsWith('/')
+            ? this.publicEndpoint.slice(0, -1)
             : this.publicEndpoint;
-        
-        return `${cleanPublicEndpoint}/${this.bucket}/${key}`;
+
+        return `${cleanPublicEndpoint}/${key}`;
     }
 
     async testConnection(): Promise<boolean> {
