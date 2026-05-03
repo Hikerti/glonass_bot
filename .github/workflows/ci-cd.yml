@@ -15,10 +15,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
+      - name: Show repository files
+        run: |
+          pwd
+          ls -la
+          find . -maxdepth 2 -type d
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -26,19 +27,19 @@ jobs:
           bun-version: latest
 
       - name: Install backend dependencies
-        working-directory: tg-glonass-bot-main
+        working-directory: ./tg-glonass-bot-main
         run: bun install --frozen-lockfile
 
       - name: Build backend gate
-        working-directory: tg-glonass-bot-main
+        working-directory: ./tg-glonass-bot-main
         run: bun run build:gate
 
       - name: Build backend worker
-        working-directory: tg-glonass-bot-main
+        working-directory: ./tg-glonass-bot-main
         run: bun run build:worker
 
       - name: Lint backend
-        working-directory: tg-glonass-bot-main
+        working-directory: ./tg-glonass-bot-main
         run: bun run lint
 
   deploy:
