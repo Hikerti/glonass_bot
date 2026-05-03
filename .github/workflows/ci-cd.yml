@@ -15,11 +15,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Show repository files
         run: |
           pwd
           ls -la
           find . -maxdepth 2 -type d
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: glonass_bot_frontend/package-lock.json
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -27,20 +37,32 @@ jobs:
           bun-version: latest
 
       - name: Install backend dependencies
-        working-directory: ./tg-glonass-bot-main
+        working-directory: tg-glonass-bot-main
         run: bun install --frozen-lockfile
 
       - name: Build backend gate
-        working-directory: ./tg-glonass-bot-main
+        working-directory: tg-glonass-bot-main
         run: bun run build:gate
 
       - name: Build backend worker
-        working-directory: ./tg-glonass-bot-main
+        working-directory: tg-glonass-bot-main
         run: bun run build:worker
 
       - name: Lint backend
-        working-directory: ./tg-glonass-bot-main
+        working-directory: tg-glonass-bot-main
         run: bun run lint
+
+      - name: Install frontend dependencies
+        working-directory: glonass_bot_frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: glonass_bot_frontend
+        run: npm run build
+
+      - name: Lint frontend
+        working-directory: glonass_bot_frontend
+        run: npm run lint
 
   deploy:
     name: Deploy over SSH
