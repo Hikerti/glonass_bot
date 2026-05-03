@@ -28,8 +28,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: glonass_bot_frontend/package-lock.json
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
