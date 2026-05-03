@@ -46,18 +46,24 @@ export const userApi = {
         return data;
     },
 
-    uploadExcel: async (file: File) => {
+    uploadExcel: async (file: File, typeEmail?: UserTypeEmail) => {
         const formData = new FormData();
         formData.append('file', file);
 
-        const { data } = await apiMultipart.post('/excel/import', formData);
+        const { data } = await apiMultipart.post(API_ENDPOINTS.excel.import, formData, {
+            params: {
+                typeEmail: typeEmail || UserTypeEmail.MAIL,
+            },
+        });
+
         return data;
     },
 
     exportExcel: async () => {
-        const { data } = await api.get('/excel/export', {
+        const { data } = await api.get(API_ENDPOINTS.excel.export, {
             responseType: 'blob',
         });
+
         return data;
     },
 };

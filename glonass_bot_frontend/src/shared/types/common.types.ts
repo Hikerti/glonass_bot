@@ -50,3 +50,9 @@ export const DISABLED_POST_TYPES: PostType[] = [
     PostType.TG2,
     PostType.TG3,
 ];
+
+export enum UserTypeEmail {
+    MAIL = 'mail',
+    MAIL2 = 'mail2',
+    MAIL3 = 'mail3',
+}

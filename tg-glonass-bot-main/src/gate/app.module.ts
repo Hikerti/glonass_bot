@@ -6,6 +6,7 @@ import {ConfigModule} from "@nestjs/config";
 import {TypeormModule} from "@integrations";
 import { AiModule } from './ai/ai.module';
 import { MediaModule } from './media/media.module';
+import { GateExcelModule } from './excel/excel.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { MediaModule } from './media/media.module';
       UserModule,
       AuthModule,
       PostModule,
+      GateExcelModule,
 
       TypeormModule,
 
