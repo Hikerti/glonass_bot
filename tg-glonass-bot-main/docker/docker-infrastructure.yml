@@ -69,7 +69,7 @@ services:
     container_name: nginx
     ports:
       - "80:80"
-      - "234:80"
+      - "443:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro 
     depends_on:
