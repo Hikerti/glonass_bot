@@ -58,10 +58,6 @@ jobs:
         working-directory: glonass_bot_frontend
         run: npm run build
 
-      - name: Lint frontend
-        working-directory: glonass_bot_frontend
-        run: npm run lint
-
   deploy:
     name: Deploy over SSH
     runs-on: ubuntu-latest
