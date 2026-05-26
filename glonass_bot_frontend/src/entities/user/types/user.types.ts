@@ -22,3 +22,16 @@ export interface UserCreateDTO {
 }
 
 export type UserUpdateDTO = Partial<UserCreateDTO>;
+
+export interface UserBulkCreateResultDTO {
+    users: UserDTO[];
+    importedCount: number;
+    duplicateCount: number;
+    duplicatesInFile: number;
+    existingDuplicatesSkipped: number;
+    existingDuplicatesRemoved: number;
+}
+
+export interface ExcelImportResultDTO extends UserBulkCreateResultDTO {
+    count: number;
+}

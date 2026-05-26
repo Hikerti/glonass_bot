@@ -2,6 +2,7 @@ import { BadRequestException, Controller, Get, Query, Res } from '@nestjs/common
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import type { Response } from 'express';
+import { UserTypeEmail } from '@domains';
 import { UserService } from './user.service';
 
 @Controller('mail-actions')
@@ -14,11 +15,16 @@ export class UnsubscribeController {
     @Get('unsubscribe')
     async unsubscribe(
         @Query('email') email: string,
+        @Query('typeEmail') typeEmail: UserTypeEmail | undefined,
         @Query('token') token: string,
         @Res() res: Response,
     ) {
         if (!email || !token) {
             throw new BadRequestException('Missing parameters');
+        }
+
+        if (typeEmail && !Object.values(UserTypeEmail).includes(typeEmail)) {
+            throw new BadRequestException('Invalid email channel');
         }
 
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -27,7 +33,7 @@ export class UnsubscribeController {
             const secret = this.config.get('JWT_SECRET') || 'fallback_secret';
             const expectedToken = crypto
                 .createHmac('sha256', secret)
-                .update(email)
+                .update(typeEmail ? `${email}:${typeEmail}` : email)
                 .digest('hex')
                 .substring(0, 12);
 
@@ -35,7 +41,7 @@ export class UnsubscribeController {
                 throw new Error('Invalid unsubscribe token');
             }
 
-            const deletedUser = await this.userService.unsubscribeByEmail(email);
+            const deletedUser = await this.userService.unsubscribeByEmail(email, typeEmail);
             const title = deletedUser ? 'Вы успешно отписаны' : 'Вы уже отписаны';
             const message = deletedUser
                 ? `Email <b>${email}</b> больше не будет получать письма.`

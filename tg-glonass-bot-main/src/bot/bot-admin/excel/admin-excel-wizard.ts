@@ -77,7 +77,9 @@ export class ImportUsersWizard {
         const result = await this.importer.importUserFromExcel(state.fileBuffer, selectedType);
 
         if (result) {
-            await ctx.reply(`Импорт завершён ✅\nСоздано пользователей: ${result.count}`);
+            await ctx.reply(
+                `Импорт завершён ✅\nСоздано пользователей: ${result.count}\nДубликатов обработано: ${result.duplicateCount}`,
+            );
         } else {
             await ctx.reply('Произошла ошибка при сохранении данных в базу ❌');
         }

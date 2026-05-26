@@ -59,7 +59,7 @@ export class MailScheduler extends AbstractPostScheduler {
     }
 
     const normalJob = await this.queue.getJob(postId);
-    if (normalJob) {
+    if (normalJob && !(await normalJob.isActive())) {
       await normalJob.remove();
       this.logger.log(`[Queue] 🗑️ Обычная задача для поста ${postId} удалена`);
     }
@@ -67,7 +67,7 @@ export class MailScheduler extends AbstractPostScheduler {
     const immediateJob = await this.queue.getJob(
       this.getImmediateJobId(postId),
     );
-    if (immediateJob) {
+    if (immediateJob && !(await immediateJob.isActive())) {
       await immediateJob.remove();
       this.logger.log(
         `[Queue] 🗑️ Немедленная задача для поста ${postId} удалена`,
@@ -93,6 +93,9 @@ export class MailScheduler extends AbstractPostScheduler {
       .map((j) => j.id)
       .filter((id): id is string => !!id); // Убираем undefined для TS
 
+    const allActiveIds = new Set<string>();
+    let allMailTypesLoaded = true;
+
     for (const type of types) {
       try {
         const response = await axios.get(`${gateUrl}/posts`, {
@@ -101,19 +104,24 @@ export class MailScheduler extends AbstractPostScheduler {
         const dbPosts: PostDTO[] = response.data.items || [];
 
         const activeDbPosts = dbPosts.filter((p) => p.active);
-        const activeIds = activeDbPosts.map((p) => p.id);
+        activeDbPosts.forEach((post) => allActiveIds.add(post.id));
 
         for (const post of activeDbPosts) {
           await this.schedulePost(post);
         }
-
-        for (const queuedId of queuedPostIds) {
-          if (!activeIds.includes(queuedId)) {
-            await this.removePostFromQueue(queuedId);
-          }
-        }
       } catch (e) {
+        allMailTypesLoaded = false;
         this.logger.error(`[Cron] Ошибка типа ${type}: ${e.message}`);
+      }
+    }
+
+    if (!allMailTypesLoaded) {
+      return;
+    }
+
+    for (const queuedId of queuedPostIds) {
+      if (!allActiveIds.has(queuedId)) {
+        await this.removePostFromQueue(queuedId);
       }
     }
   }

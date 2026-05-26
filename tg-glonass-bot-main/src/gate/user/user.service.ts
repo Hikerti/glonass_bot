@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {UserRepository} from "./user.repository";
-import {User, UserDTO, UserRole, UserTypeEmail} from "@domains";
+import {User, UserBulkCreateResultDTO, UserDTO, UserRole, UserTypeEmail} from "@domains";
 import {PaginationType} from "@shared";
 
 @Injectable()
@@ -15,11 +15,11 @@ export class UserService {
         return await this.userRepository.create(dto);
     }
 
-    async unsubscribeByEmail(email: string) {
-        return await this.userRepository.unsubscribeByEmail(email);
+    async unsubscribeByEmail(email: string, typeEmail?: UserTypeEmail) {
+        return await this.userRepository.unsubscribeByEmail(email, typeEmail);
     }
 
-    async createMany(dto: UserDTO.Create[]): Promise<UserDTO[]> {
+    async createMany(dto: UserDTO.Create[]): Promise<UserBulkCreateResultDTO> {
         return await this.userRepository.createMany(dto);
     }
 

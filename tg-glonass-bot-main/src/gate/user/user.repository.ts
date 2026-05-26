@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { Repository } from "typeorm";
-import {UserDTO, UserRole, User, UserTypeEmail} from "@domains";
+import {UserBulkCreateResultDTO, UserDTO, UserRole, User, UserTypeEmail} from "@domains";
 import { PaginationType } from "@shared";
 import { InjectRepository } from "@nestjs/typeorm";
 
@@ -11,10 +11,45 @@ export class UserRepository {
         private readonly userRepository: Repository<User>,
     ) {}
 
+    private normalizeEmail(email?: string | null): string | null {
+        const normalizedEmail = email?.trim().toLowerCase();
+        return normalizedEmail || null;
+    }
+
+    private getRecipientKey(email?: string | null, typeEmail?: UserTypeEmail | null): string | null {
+        const normalizedEmail = this.normalizeEmail(email);
+        return normalizedEmail && typeEmail ? `${normalizedEmail}:${typeEmail}` : null;
+    }
+
+    private async assertRecipientIsUnique(
+        email?: string | null,
+        typeEmail?: UserTypeEmail | null,
+        excludedId?: string,
+    ): Promise<void> {
+        const normalizedEmail = this.normalizeEmail(email);
+        if (!normalizedEmail || !typeEmail) return;
+
+        const query = this.userRepository
+            .createQueryBuilder('user')
+            .where('LOWER(TRIM("user"."email")) = :email', { email: normalizedEmail })
+            .andWhere('"user"."type_email" = :typeEmail', { typeEmail });
+
+        if (excludedId) {
+            query.andWhere('"user"."id" <> :excludedId', { excludedId });
+        }
+
+        if (await query.getOne()) {
+            throw new ConflictException('Recipient with this email already exists for the selected sender');
+        }
+    }
+
     async create(userData: UserDTO.Create): Promise<UserDTO> {
+        const normalizedEmail = this.normalizeEmail(userData.email);
+        await this.assertRecipientIsUnique(normalizedEmail, userData.typeEmail);
+
         const userEntity = this.userRepository.create({
             name: userData.name,
-            email: userData.email ?? null,
+            email: normalizedEmail,
             tgId: userData.tgId ?? null,
             vkId: userData.vkId ?? null,
             typeEmail: userData.typeEmail,
@@ -26,8 +61,19 @@ export class UserRepository {
         return UserDTO.fromModel(user);
     }
 
-    async unsubscribeByEmail(email: string) {
-        const user = await this.userRepository.findOne({ where: { email } });
+    async unsubscribeByEmail(email: string, typeEmail?: UserTypeEmail) {
+        const normalizedEmail = this.normalizeEmail(email);
+        if (!normalizedEmail) return null;
+
+        const query = this.userRepository
+            .createQueryBuilder('user')
+            .where('LOWER(TRIM("user"."email")) = :email', { email: normalizedEmail });
+
+        if (typeEmail) {
+            query.andWhere('"user"."type_email" = :typeEmail', { typeEmail });
+        }
+
+        const user = await query.getOne();
 
         if (!user) {
             return null;
@@ -38,19 +84,85 @@ export class UserRepository {
         return UserDTO.fromModel(user);
     }
     
-    async createMany(users: UserDTO.Create[]): Promise<UserDTO[]> {
-        const userEntities = users.map(u => this.userRepository.create({
-            name: u.name,
-            email: u.email ?? null,
-            tgId: u.tgId ?? null,
-            vkId: u.vkId ?? null,
-            typeEmail: u.typeEmail,
-            role: UserRole.CLIENT,
-        }));
+    async createMany(users: UserDTO.Create[]): Promise<UserBulkCreateResultDTO> {
+        return await this.userRepository.manager.transaction(async (manager) => {
+            const repository = manager.getRepository(User);
+            const incomingKeys = new Set<string>();
+            const uniqueUsers: UserDTO.Create[] = [];
+            let duplicatesInFile = 0;
 
-        const savedUsers = await this.userRepository.save(userEntities);
+            for (const user of users) {
+                const normalizedUser = {
+                    ...user,
+                    email: this.normalizeEmail(user.email),
+                };
+                const key = this.getRecipientKey(normalizedUser.email, normalizedUser.typeEmail);
 
-        return savedUsers.map(UserDTO.fromModel);
+                if (key && incomingKeys.has(key)) {
+                    duplicatesInFile += 1;
+                    continue;
+                }
+
+                if (key) incomingKeys.add(key);
+                uniqueUsers.push(normalizedUser);
+            }
+
+            const existingRecipients = await repository
+                .createQueryBuilder('user')
+                .where('"user"."email" IS NOT NULL')
+                .andWhere('"user"."type_email" IS NOT NULL')
+                .orderBy('"user"."created_at"', 'ASC')
+                .addOrderBy('"user"."id"', 'ASC')
+                .getMany();
+            const existingByKey = new Map<string, User>();
+            const duplicateIds: string[] = [];
+
+            for (const recipient of existingRecipients) {
+                const key = this.getRecipientKey(recipient.email, recipient.typeEmail);
+                if (!key) continue;
+
+                if (existingByKey.has(key)) {
+                    duplicateIds.push(recipient.id);
+                } else {
+                    existingByKey.set(key, recipient);
+                }
+            }
+
+            if (duplicateIds.length) {
+                await repository.delete(duplicateIds);
+            }
+
+            let existingDuplicatesSkipped = 0;
+            const usersToCreate = uniqueUsers.filter((user) => {
+                const key = this.getRecipientKey(user.email, user.typeEmail);
+
+                if (key && existingByKey.has(key)) {
+                    existingDuplicatesSkipped += 1;
+                    return false;
+                }
+
+                return true;
+            });
+            const userEntities = usersToCreate.map(u => repository.create({
+                name: u.name,
+                email: this.normalizeEmail(u.email),
+                tgId: u.tgId ?? null,
+                vkId: u.vkId ?? null,
+                typeEmail: u.typeEmail,
+                role: UserRole.CLIENT,
+            }));
+            const savedUsers = userEntities.length ? await repository.save(userEntities) : [];
+            const existingDuplicatesRemoved = duplicateIds.length;
+
+            return {
+                users: savedUsers.map(UserDTO.fromModel),
+                importedCount: savedUsers.length,
+                duplicateCount: duplicatesInFile + existingDuplicatesSkipped + existingDuplicatesRemoved,
+                duplicatesInFile,
+                existingDuplicatesSkipped,
+                existingDuplicatesRemoved,
+            };
+        });
     }
 
     async update(id: string, userData: UserDTO.Update): Promise<UserDTO> {
@@ -59,12 +171,21 @@ export class UserRepository {
             throw new NotFoundException(`User with id ${id} not found`);
         }
 
+        const normalizedEmail = userData.email === undefined
+            ? existingUser.email
+            : this.normalizeEmail(userData.email);
+        const typeEmail = userData.typeEmail === undefined
+            ? existingUser.typeEmail
+            : userData.typeEmail;
+
+        await this.assertRecipientIsUnique(normalizedEmail, typeEmail, id);
+
         this.userRepository.merge(existingUser, {
             name: userData.name,
-            email: userData.email,
+            email: normalizedEmail,
             tgId: userData.tgId,
             vkId: userData.vkId,
-            typeEmail: userData.typeEmail,
+            typeEmail,
             role: userData.role as UserRole,
         });
 

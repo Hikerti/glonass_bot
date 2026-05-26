@@ -11,7 +11,7 @@ import {
     ParseIntPipe
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { UserDTO, UserRole, UserTypeEmail } from '@domains';
+import { UserBulkCreateResultDTO, UserDTO, UserRole, UserTypeEmail } from '@domains';
 
 @Controller('users')
 export class UserController {
@@ -33,7 +33,7 @@ export class UserController {
     }
 
     @Post('/bulk')
-    async createMany(@Body() dto: UserDTO.Create[]): Promise<UserDTO[]> {
+    async createMany(@Body() dto: UserDTO.Create[]): Promise<UserBulkCreateResultDTO> {
         return await this.userService.createMany(dto);
     }
 
@@ -46,8 +46,8 @@ export class UserController {
     }
 
     @Patch('unsubscribe-by-email')
-    async unsubscribe(@Body() data: { email: string }) {
-        await this.userService.unsubscribeByEmail(data.email);
+    async unsubscribe(@Body() data: { email: string; typeEmail?: UserTypeEmail }) {
+        await this.userService.unsubscribeByEmail(data.email, data.typeEmail);
         return { success: true };
     }
 

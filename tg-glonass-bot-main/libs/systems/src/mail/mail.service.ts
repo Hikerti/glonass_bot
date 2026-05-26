@@ -15,9 +15,9 @@ export class MailService extends AbstractNotificationService {
     constructor(private readonly config: ConfigService) {
         super();
         this.configs = {
-            [PostType.MAIL]: this.resolveMailConfig('MAIL', 'smtp.mail.ru', 'ostrovbot@ostrov59.ru', 'ROk6aJeARaM980lQb5QX'),
-            [PostType.MAIL2]: this.resolveMailConfig('MAIL2', 'smtp.mail.ru', 'm.zharovskyh@ostrov59.ru', 'PASSWORD_HERE'),
-            [PostType.MAIL3]: this.resolveMailConfig('MAIL3', 'smtp.yandex.ru', 'avtolyx18@yandex.ru', 'avtknadnbziiesgl'),
+            [PostType.MAIL]: this.resolveMailConfig('MAIL', 'smtp.mail.ru', 'ostrovbot@ostrov59.ru', 'CHANGE_ME'),
+            [PostType.MAIL2]: this.resolveMailConfig('MAIL2', 'smtp.mail.ru', 'm.zharovskyh@ostrov59.ru', 'CHANGE_ME'),
+            [PostType.MAIL3]: this.resolveMailConfig('MAIL3', 'smtp.yandex.ru', 'avtolyx18@yandex.ru', 'CHANGE_ME'),
         };
 
         for (const [type, config] of Object.entries(this.configs)) {
@@ -43,9 +43,10 @@ export class MailService extends AbstractNotificationService {
         return { user, pass, host };
     }
 
-    private getUnsubscribeHash(email: string): string {
+    private getUnsubscribeHash(email: string, type?: PostType): string {
         const secret = this.config.get('JWT_SECRET') || 'fallback_secret';
-        return crypto.createHmac('sha256', secret).update(email).digest('hex').substring(0, 12);
+        const payload = type ? `${email}:${type}` : email;
+        return crypto.createHmac('sha256', secret).update(payload).digest('hex').substring(0, 12);
     }
 
     public async send(data: ChannelJobData): Promise<void> {
@@ -72,8 +73,8 @@ export class MailService extends AbstractNotificationService {
         for (const user of users) {
             if (!user.email) continue;
 
-            const hash = this.getUnsubscribeHash(user.email);
-            const unsubscribeUrl = `${publicGateUrl}/mail-actions/unsubscribe?email=${encodeURIComponent(user.email)}&token=${hash}`;
+            const hash = this.getUnsubscribeHash(user.email, type);
+            const unsubscribeUrl = `${publicGateUrl}/mail-actions/unsubscribe?email=${encodeURIComponent(user.email)}&typeEmail=${encodeURIComponent(type)}&token=${hash}`;
 
             try {
                 await transporter.sendMail({
@@ -102,8 +103,8 @@ export class MailService extends AbstractNotificationService {
         }
     }
 
-    async removeUserByEmail(email: string, token: string) {
-        const expectedHash = this.getUnsubscribeHash(email);
+    async removeUserByEmail(email: string, token: string, type?: PostType) {
+        const expectedHash = this.getUnsubscribeHash(email, type);
         if (token !== expectedHash) {
             throw new Error('Invalid unsubscribe token');
         }
@@ -111,7 +112,8 @@ export class MailService extends AbstractNotificationService {
         const gateUrl = this.getGateUrl();
         try {
             await axios.patch(`${gateUrl}/users/unsubscribe-by-email`, {
-                email: email
+                email: email,
+                typeEmail: type,
             });
             this.logger.log(`[Unsubscribe] Пользователь ${email} успешно отписан через Gate`);
         } catch (e) {

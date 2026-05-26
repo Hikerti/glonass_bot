@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import axios from 'axios';
 import { userApi } from '../../../entities/user/api/userApi';
+import { ExcelImportResultDTO } from '../../../entities/user/types/user.types';
 import { Button } from '../../../shared/ui/Button/Button';
 import { EMAIL_TYPE_MAPPING, UserTypeEmail } from '../../../shared/types/common.types';
 
@@ -22,6 +23,7 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 export const UploadExcel: React.FC<UploadExcelProps> = ({ onSuccess }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [result, setResult] = useState<ExcelImportResultDTO | null>(null);
     const [typeEmail, setTypeEmail] = useState<UserTypeEmail>(UserTypeEmail.MAIL);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -34,16 +36,18 @@ export const UploadExcel: React.FC<UploadExcelProps> = ({ onSuccess }) => {
             file.name.toLowerCase().endsWith('.xls');
 
         if (!isExcel) {
+            setResult(null);
             setError('Пожалуйста, выберите Excel файл .xlsx или .xls');
             return;
         }
 
         setLoading(true);
         setError(null);
+        setResult(null);
 
         try {
             const result = await userApi.uploadExcel(file, typeEmail);
-            alert(`Пользователи успешно импортированы: ${result.count}`);
+            setResult(result);
             onSuccess?.();
 
             if (fileInputRef.current) {
@@ -87,7 +91,10 @@ export const UploadExcel: React.FC<UploadExcelProps> = ({ onSuccess }) => {
             <div className="flex gap-2 items-center flex-wrap">
                 <select
                     value={typeEmail}
-                    onChange={(e) => setTypeEmail(e.target.value as UserTypeEmail)}
+                    onChange={(e) => {
+                        setTypeEmail(e.target.value as UserTypeEmail);
+                        setResult(null);
+                    }}
                     disabled={loading}
                     className="border rounded px-3 py-2"
                 >
@@ -130,6 +137,18 @@ export const UploadExcel: React.FC<UploadExcelProps> = ({ onSuccess }) => {
             </p>
 
             {error && <p className="text-sm text-red-600">{error}</p>}
+
+            {result && (
+                <div className="border border-gray-200 rounded p-3 text-sm text-gray-700">
+                    <p className="font-medium">Импорт завершён</p>
+                    <p>Добавлено получателей: {result.importedCount}</p>
+                    <p>Дубликатов обработано: {result.duplicateCount}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                        В файле: {result.duplicatesInFile}; уже были в выбранном канале: {result.existingDuplicatesSkipped};
+                        удалено ранее сохранённых дублей: {result.existingDuplicatesRemoved}.
+                    </p>
+                </div>
+            )}
         </div>
     );
 };

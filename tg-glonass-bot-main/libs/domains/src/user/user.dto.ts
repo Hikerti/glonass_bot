@@ -58,3 +58,12 @@ export namespace UserDTO {
     export class Create extends OmitType(UserDTO, ['id', 'createdAt', 'updatedAt'] as const) {}
     export class Update extends PartialType(Create) {}
 }
+
+export class UserBulkCreateResultDTO {
+    users: UserDTO[];
+    importedCount: number;
+    duplicateCount: number;
+    duplicatesInFile: number;
+    existingDuplicatesSkipped: number;
+    existingDuplicatesRemoved: number;
+}

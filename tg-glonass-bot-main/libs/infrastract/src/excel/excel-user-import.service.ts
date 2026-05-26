@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as XLSX from 'xlsx';
 import axios from 'axios';
-import { UserTypeEmail } from '@domains';
+import { UserBulkCreateResultDTO, UserTypeEmail } from '@domains';
 
 type ExcelRow = Record<string, unknown>;
 
@@ -81,11 +81,11 @@ export class ExcelUserImportService {
 
     const gateUrl = this.config.get<string>('GATE_URL') || 'http://localhost:3000';
 
-    const response = await axios.post(`${gateUrl}/users/bulk`, users);
+    const response = await axios.post<UserBulkCreateResultDTO>(`${gateUrl}/users/bulk`, users);
 
     return {
-      count: users.length,
-      users: response.data,
+      count: response.data.importedCount,
+      ...response.data,
     };
   }
 }

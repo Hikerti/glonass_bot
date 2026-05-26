@@ -1,7 +1,7 @@
 import { api, apiMultipart } from '../../../shared/api/axios';
 import { API_ENDPOINTS } from '../../../shared/api/config';
 import { PaginationType, UserRole, UserTypeEmail } from '../../../shared/types/common.types';
-import { UserDTO, UserCreateDTO, UserUpdateDTO } from '../types/user.types';
+import { ExcelImportResultDTO, UserBulkCreateResultDTO, UserDTO, UserCreateDTO, UserUpdateDTO } from '../types/user.types';
 
 interface GetUsersParams {
     page: number;
@@ -32,7 +32,7 @@ export const userApi = {
     },
 
     createMany: async (users: UserCreateDTO[]) => {
-        const { data } = await api.post<UserDTO[]>(`${API_ENDPOINTS.users}/bulk`, users);
+        const { data } = await api.post<UserBulkCreateResultDTO>(`${API_ENDPOINTS.users}/bulk`, users);
         return data;
     },
 
@@ -50,7 +50,7 @@ export const userApi = {
         const formData = new FormData();
         formData.append('file', file);
 
-        const { data } = await apiMultipart.post(API_ENDPOINTS.excel.import, formData, {
+        const { data } = await apiMultipart.post<ExcelImportResultDTO>(API_ENDPOINTS.excel.import, formData, {
             params: {
                 typeEmail: typeEmail || UserTypeEmail.MAIL,
             },
