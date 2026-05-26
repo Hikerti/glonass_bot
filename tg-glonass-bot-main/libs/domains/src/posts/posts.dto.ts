@@ -16,6 +16,7 @@ export class PostDTO {
     interval: string;
 
     @IsString()
+    // Legacy API name: this value is the mailing end date.
     date: string;
 
     @IsArray()

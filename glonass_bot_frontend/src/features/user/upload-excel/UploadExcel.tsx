@@ -1,11 +1,23 @@
 import React, { useRef, useState } from 'react';
+import axios from 'axios';
 import { userApi } from '../../../entities/user/api/userApi';
 import { Button } from '../../../shared/ui/Button/Button';
-import { UserTypeEmail } from '../../../shared/types/common.types';
+import { EMAIL_TYPE_MAPPING, UserTypeEmail } from '../../../shared/types/common.types';
 
 interface UploadExcelProps {
     onSuccess?: () => void;
 }
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+    if (!axios.isAxiosError(error)) {
+        return fallback;
+    }
+
+    const data = error.response?.data as { message?: string | string[] } | undefined;
+    const message = data?.message;
+
+    return Array.isArray(message) ? message.join(', ') : message || fallback;
+};
 
 export const UploadExcel: React.FC<UploadExcelProps> = ({ onSuccess }) => {
     const [loading, setLoading] = useState(false);
@@ -37,12 +49,8 @@ export const UploadExcel: React.FC<UploadExcelProps> = ({ onSuccess }) => {
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
-        } catch (err: any) {
-            const message =
-                err?.response?.data?.message ||
-                'Ошибка при импорте пользователей';
-
-            setError(Array.isArray(message) ? message.join(', ') : message);
+        } catch (err: unknown) {
+            setError(getErrorMessage(err, 'Ошибка при импорте пользователей'));
             console.error(err);
         } finally {
             setLoading(false);
@@ -66,12 +74,8 @@ export const UploadExcel: React.FC<UploadExcelProps> = ({ onSuccess }) => {
 
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
-        } catch (err: any) {
-            const message =
-                err?.response?.data?.message ||
-                'Ошибка при экспорте пользователей';
-
-            setError(Array.isArray(message) ? message.join(', ') : message);
+        } catch (err: unknown) {
+            setError(getErrorMessage(err, 'Ошибка при экспорте пользователей'));
             console.error(err);
         } finally {
             setLoading(false);
@@ -87,9 +91,11 @@ export const UploadExcel: React.FC<UploadExcelProps> = ({ onSuccess }) => {
                     disabled={loading}
                     className="border rounded px-3 py-2"
                 >
-                    <option value={UserTypeEmail.MAIL}>mail</option>
-                    <option value={UserTypeEmail.MAIL2}>mail2</option>
-                    <option value={UserTypeEmail.MAIL3}>mail3</option>
+                    {Object.entries(EMAIL_TYPE_MAPPING).map(([type, email]) => (
+                        <option key={type} value={type}>
+                            {type.toUpperCase()} - {email}
+                        </option>
+                    ))}
                 </select>
 
                 <input

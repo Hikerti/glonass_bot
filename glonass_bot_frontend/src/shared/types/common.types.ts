@@ -29,9 +29,9 @@ export enum PostType {
 }
 
 export const EMAIL_TYPE_MAPPING: Record<UserTypeEmail, string> = {
-    [UserTypeEmail.MAIL]: 'kz@ostrov59.ru',
-    [UserTypeEmail.MAIL2]: 'avtolyx18@yandex.ru',
-    [UserTypeEmail.MAIL3]: 'e.pushina@ostrov59.ru',
+    [UserTypeEmail.MAIL]: 'ostrovbot@ostrov59.ru',
+    [UserTypeEmail.MAIL2]: 'm.zharovskyh@ostrov59.ru',
+    [UserTypeEmail.MAIL3]: 'avtolyx18@yandex.ru',
 };
 
 export const POST_TYPE_MAPPING: Record<PostType, string> = {
@@ -40,9 +40,9 @@ export const POST_TYPE_MAPPING: Record<PostType, string> = {
     [PostType.TG3]: 'Telegram 3',
     [PostType.VK]: 'VK',
     [PostType.VK2]: 'VK 2',
-    [PostType.MAIL]: 'kz@ostrov59.ru',
-    [PostType.MAIL2]: 'avtolyx18@yandex.ru',
-    [PostType.MAIL3]: 'e.pushina@ostrov59.ru',
+    [PostType.MAIL]: 'ostrovbot@ostrov59.ru',
+    [PostType.MAIL2]: 'm.zharovskyh@ostrov59.ru',
+    [PostType.MAIL3]: 'avtolyx18@yandex.ru',
 };
 
 export const DISABLED_POST_TYPES: PostType[] = [

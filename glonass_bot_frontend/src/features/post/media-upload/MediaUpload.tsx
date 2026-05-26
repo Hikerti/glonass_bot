@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { postApi } from '../../../entities/post/api/postApi';
 
 interface MediaUploadProps {
@@ -13,12 +13,6 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
                                                             currentMedia = []
                                                         }) => {
     const [uploading, setUploading] = useState(false);
-    const [previews, setPreviews] = useState<string[]>(currentMedia);
-
-    // Синхронизация с родительским компонентом
-    useEffect(() => {
-        setPreviews(currentMedia);
-    }, [currentMedia]);
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
@@ -30,7 +24,6 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
             for (const file of files) {
                 const result = await postApi.uploadMedia(file);
                 onUpload(result.url);
-                setPreviews(prev => [...prev, result.url]);
             }
             // Очистить input после загрузки
             e.target.value = '';
@@ -43,7 +36,6 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
     };
 
     const handleRemove = (url: string) => {
-        setPreviews(prev => prev.filter(p => p !== url));
         if (onRemove) {
             onRemove(url);
         }
@@ -103,9 +95,9 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
                 </p>
             </div>
 
-            {previews.length > 0 && (
+            {currentMedia.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {previews.map((url, index) => (
+                    {currentMedia.map((url, index) => (
                         <div key={index} className="relative group">
                             <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
                                 {url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
@@ -133,9 +125,9 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
                 </div>
             )}
 
-            {previews.length > 0 && (
+            {currentMedia.length > 0 && (
                 <p className="text-xs text-gray-500">
-                    Загружено файлов: {previews.length}
+                    Загружено файлов: {currentMedia.length}
                 </p>
             )}
         </div>

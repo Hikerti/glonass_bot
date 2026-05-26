@@ -52,7 +52,7 @@ export class MailService extends AbstractNotificationService {
         const { users, text, media, subject, type } = data;
         const transporter = this.transporters[type];
         const config = this.configs[type];
-        const gateUrl = this.getGateUrl();
+        const publicGateUrl = this.getPublicGateUrl();
 
         if (!transporter || !config) {
             this.logger.warn(`SMTP config for ${type} is missing, skip mailing`);
@@ -73,7 +73,7 @@ export class MailService extends AbstractNotificationService {
             if (!user.email) continue;
 
             const hash = this.getUnsubscribeHash(user.email);
-            const unsubscribeUrl = `http://188.17.152.95/api/mail-actions/unsubscribe?email=${encodeURIComponent(user.email)}&token=${hash}`;
+            const unsubscribeUrl = `${publicGateUrl}/mail-actions/unsubscribe?email=${encodeURIComponent(user.email)}&token=${hash}`;
 
             try {
                 await transporter.sendMail({
@@ -130,5 +130,20 @@ export class MailService extends AbstractNotificationService {
         }
 
         return gateUrl;
+    }
+
+    private getPublicGateUrl() {
+        const configuredPublicGateUrl = this.config.get<string>('PUBLIC_GATE_URL');
+        if (configuredPublicGateUrl) {
+            return configuredPublicGateUrl.replace(/\/$/, '');
+        }
+
+        const isDocker = this.config.get<string>('RUNNING_IN_DOCKER') === 'true';
+        const publicBaseUrl = this.config.get<string>('PUBLIC_BASE_URL');
+        if (isDocker && publicBaseUrl) {
+            return `${publicBaseUrl.replace(/\/$/, '')}/api`;
+        }
+
+        return this.getGateUrl();
     }
 }

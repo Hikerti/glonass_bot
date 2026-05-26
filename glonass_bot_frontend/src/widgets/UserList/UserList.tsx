@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { userApi } from '../../entities/user/api/userApi';
 import { UserDTO } from '../../entities/user/types/user.types';
 import { UserRole, UserTypeEmail } from '../../shared/types/common.types';
@@ -21,13 +21,17 @@ export const UserList: React.FC<UserListProps> = ({
                                                   }) => {
     const [users, setUsers] = useState<UserDTO[]>([]);
     const [page, setPage] = useState(1);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [hasMore, setHasMore] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const loadingRef = useRef(false);
+    const requestIdRef = useRef(0);
 
-    const loadUsers = useCallback(async (pageNum: number, reset = false): Promise<boolean> => {
-        if (loading) return false;
+    const loadUsers = useCallback(async (pageNum: number): Promise<boolean> => {
+        if (loadingRef.current) return false;
 
+        const requestId = ++requestIdRef.current;
+        loadingRef.current = true;
         setLoading(true);
         setError(null);
         try {
@@ -37,24 +41,67 @@ export const UserList: React.FC<UserListProps> = ({
                 role,
                 typeEmail
             });
-            setUsers(prev => reset ? data.items : [...prev, ...data.items]);
+
+            if (requestId !== requestIdRef.current) return false;
+
+            setUsers(prev => [...prev, ...data.items]);
             setHasMore(!data.isLast);
             return true;
         } catch (error) {
+            if (requestId !== requestIdRef.current) return false;
+
             console.error('Error loading users:', error);
             setError('Не удалось загрузить пользователей');
             setHasMore(false);
             return false;
         } finally {
-            setLoading(false);
+            if (requestId === requestIdRef.current) {
+                loadingRef.current = false;
+                setLoading(false);
+            }
         }
-    }, [role, typeEmail, loading]);
+    }, [role, typeEmail]);
 
     useEffect(() => {
-        setUsers([]);
-        setPage(1);
-        setHasMore(true);
-        loadUsers(1, true);
+        const requestId = ++requestIdRef.current;
+        loadingRef.current = true;
+
+        const loadFirstPage = async () => {
+            try {
+                const data = await userApi.getList({
+                    page: 1,
+                    limit: 10,
+                    role,
+                    typeEmail
+                });
+
+                if (requestId !== requestIdRef.current) return;
+
+                setUsers(data.items);
+                setPage(1);
+                setHasMore(!data.isLast);
+                setError(null);
+            } catch (error) {
+                if (requestId !== requestIdRef.current) return;
+
+                console.error('Error loading users:', error);
+                setUsers([]);
+                setHasMore(false);
+                setError('Не удалось загрузить пользователей');
+            } finally {
+                if (requestId === requestIdRef.current) {
+                    loadingRef.current = false;
+                    setLoading(false);
+                }
+            }
+        };
+
+        void loadFirstPage();
+
+        return () => {
+            requestIdRef.current += 1;
+            loadingRef.current = false;
+        };
     }, [role, typeEmail, refreshTrigger]);
 
     const handleLoadMore = useCallback(() => {
@@ -84,7 +131,7 @@ export const UserList: React.FC<UserListProps> = ({
         return <Loader />;
     }
 
-    if (users.length === 0 && !loading) {
+    if (users.length === 0 && !loading && !error) {
         return (
             <div className="text-center py-12">
                 <p className="text-gray-500 text-lg">Пользователи не найдены</p>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { UserDTO, UserCreateDTO, UserUpdateDTO } from '../../entities/user/types/user.types';
 import { UserRole, UserTypeEmail, EMAIL_TYPE_MAPPING } from '../../shared/types/common.types';
 import { Input } from '../../shared/ui/Input/Input';
@@ -11,29 +11,31 @@ interface UserFormProps {
     onCancel: () => void;
 }
 
-export const UserForm: React.FC<UserFormProps> = ({ user, onSubmit, onCancel }) => {
-    const [formData, setFormData] = useState<UserCreateDTO>({
+const getInitialFormData = (user?: UserDTO | null): UserCreateDTO => {
+    if (user) {
+        return {
+            name: user.name,
+            email: user.email || null,
+            tgId: user.tgId || null,
+            vkId: user.vkId || null,
+            role: user.role,
+            typeEmail: user.typeEmail || UserTypeEmail.MAIL,
+        };
+    }
+
+    return {
         name: '',
         email: null,
         tgId: null,
         vkId: null,
         role: UserRole.CLIENT,
         typeEmail: UserTypeEmail.MAIL,
-    });
-    const [loading, setLoading] = useState(false);
+    };
+};
 
-    useEffect(() => {
-        if (user) {
-            setFormData({
-                name: user.name,
-                email: user.email || null,
-                tgId: user.tgId || null,
-                vkId: user.vkId || null,
-                role: user.role,
-                typeEmail: user.typeEmail || UserTypeEmail.MAIL,
-            });
-        }
-    }, [user]);
+export const UserForm: React.FC<UserFormProps> = ({ user, onSubmit, onCancel }) => {
+    const [formData, setFormData] = useState<UserCreateDTO>(() => getInitialFormData(user));
+    const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

@@ -21,6 +21,7 @@ x-backend-env: &backend-env
   RUNNING_IN_DOCKER: "true"
   GATE_HTTP_PORT: "3000"
   GATE_URL: http://gate:3000
+  PUBLIC_GATE_URL: ${PUBLIC_BASE_URL:-http://188.17.152.95}/api
   REDIS_HOST: redis
   S3_INTERNAL_ENDPOINT: http://minio:3456
   PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://188.17.152.95}

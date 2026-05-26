@@ -5,6 +5,7 @@ export interface PostDTO {
     type: PostType;
     text: string;
     interval: string;
+    /** End date of the mailing schedule. */
     date: string;
     media: string[];
     active: boolean;
@@ -17,6 +18,7 @@ export interface PostCreateDTO {
     type: PostType;
     text: string;
     interval: string;
+    /** End date of the mailing schedule. */
     date: string;
     media: string[];
     active: boolean;

@@ -29,6 +29,7 @@ export class Post {
     interval: string;
 
     @Column()
+    // Legacy database field: this value is the mailing end date.
     date: string;
 
     @Column('text', { array: true, default: [] })

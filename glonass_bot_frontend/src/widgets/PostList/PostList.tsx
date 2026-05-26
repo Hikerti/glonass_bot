@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { postApi } from '../../entities/post/api/postApi';
 import { PostDTO } from '../../entities/post/types/post.types';
 import { PostType } from '../../shared/types/common.types';
@@ -15,13 +15,17 @@ interface PostListProps {
 export const PostList: React.FC<PostListProps> = ({ type, onEdit, refreshTrigger }) => {
     const [posts, setPosts] = useState<PostDTO[]>([]);
     const [page, setPage] = useState(1);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [hasMore, setHasMore] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const loadingRef = useRef(false);
+    const requestIdRef = useRef(0);
 
-    const loadPosts = useCallback(async (pageNum: number, reset = false): Promise<boolean> => {
-        if (loading) return false;
+    const loadPosts = useCallback(async (pageNum: number): Promise<boolean> => {
+        if (loadingRef.current) return false;
 
+        const requestId = ++requestIdRef.current;
+        loadingRef.current = true;
         setLoading(true);
         setError(null);
         try {
@@ -31,24 +35,62 @@ export const PostList: React.FC<PostListProps> = ({ type, onEdit, refreshTrigger
                 type: type
             }
             const data = await postApi.getList(params);
-            setPosts(prev => reset ? data.items : [...prev, ...data.items]);
+
+            if (requestId !== requestIdRef.current) return false;
+
+            setPosts(prev => [...prev, ...data.items]);
             setHasMore(!data.isLast);
             return true;
         } catch (error) {
+            if (requestId !== requestIdRef.current) return false;
+
             console.error('Error loading posts:', error);
             setError('Не удалось загрузить посты');
             setHasMore(false);
             return false;
         } finally {
-            setLoading(false);
+            if (requestId === requestIdRef.current) {
+                loadingRef.current = false;
+                setLoading(false);
+            }
         }
-    }, [type, loading]);
+    }, [type]);
 
     useEffect(() => {
-        setPosts([]);
-        setPage(1);
-        setHasMore(true);
-        loadPosts(1, true);
+        const requestId = ++requestIdRef.current;
+        loadingRef.current = true;
+
+        const loadFirstPage = async () => {
+            try {
+                const data = await postApi.getList({ page: 1, limit: 10, type });
+
+                if (requestId !== requestIdRef.current) return;
+
+                setPosts(data.items);
+                setPage(1);
+                setHasMore(!data.isLast);
+                setError(null);
+            } catch (error) {
+                if (requestId !== requestIdRef.current) return;
+
+                console.error('Error loading posts:', error);
+                setPosts([]);
+                setHasMore(false);
+                setError('Не удалось загрузить посты');
+            } finally {
+                if (requestId === requestIdRef.current) {
+                    loadingRef.current = false;
+                    setLoading(false);
+                }
+            }
+        };
+
+        void loadFirstPage();
+
+        return () => {
+            requestIdRef.current += 1;
+            loadingRef.current = false;
+        };
     }, [type, refreshTrigger]);
 
     const handleLoadMore = useCallback(() => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { PostDTO, PostCreateDTO, PostUpdateDTO } from '../../entities/post/types/post.types';
 import { DISABLED_POST_TYPES, PostType, POST_TYPE_MAPPING } from '../../shared/types/common.types';
 import { Input } from '../../shared/ui/Input/Input';
@@ -13,36 +13,57 @@ interface PostFormProps {
     onCancel: () => void;
 }
 
-export const PostForm: React.FC<PostFormProps> = ({ post, onSubmit, onCancel }) => {
-    const [formData, setFormData] = useState<PostCreateDTO>({
+const getLocalDateInputValue = (date = new Date()) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+};
+
+const toDateInputValue = (date: string) => {
+    const legacyDateMatch = date.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+
+    if (legacyDateMatch) {
+        const [, day, month, year] = legacyDateMatch;
+        return `${year}-${month}-${day}`;
+    }
+
+    return date;
+};
+
+const getInitialFormData = (post?: PostDTO | null): PostCreateDTO => {
+    if (post) {
+        return {
+            type: post.type,
+            text: post.text,
+            interval: post.interval,
+            date: toDateInputValue(post.date),
+            media: post.media || [],
+            active: post.active,
+            postToWall: post.postToWall,
+            postToMessage: post.postToMessage,
+        };
+    }
+
+    return {
         type: PostType.MAIL,
         text: '',
         interval: '',
-        date: new Date().toISOString().split('T')[0],
+        date: getLocalDateInputValue(),
         media: [],
         active: true,
         postToWall: false,
         postToMessage: false,
-    });
+    };
+};
+
+export const PostForm: React.FC<PostFormProps> = ({ post, onSubmit, onCancel }) => {
+    const [formData, setFormData] = useState<PostCreateDTO>(() => getInitialFormData(post));
     const [loading, setLoading] = useState(false);
     const [aiPrompt, setAiPrompt] = useState('');
     const [aiLoading, setAiLoading] = useState(false);
     const [aiError, setAiError] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (post) {
-            setFormData({
-                type: post.type,
-                text: post.text,
-                interval: post.interval,
-                date: post.date,
-                media: post.media || [],
-                active: post.active,
-                postToWall: post.postToWall,
-                postToMessage: post.postToMessage,
-            });
-        }
-    }, [post]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -168,12 +189,16 @@ export const PostForm: React.FC<PostFormProps> = ({ post, onSubmit, onCancel }) 
             />
 
             <Input
-                label="Дата начала *"
+                label="Дата окончания рассылки *"
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                min={getLocalDateInputValue()}
                 required
             />
+            <p className="-mt-3 text-xs text-gray-500">
+                Рассылка начинается сразу после создания и прекращается в конце выбранного дня.
+            </p>
 
             <MediaUpload
                 onUpload={handleMediaUpload}

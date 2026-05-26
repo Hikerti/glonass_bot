@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:local": "set VITE_API_BASE_URL=http://localhost:3004&& set VITE_APP_ENV=development&& vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build --config vite.config.ts",
     "lint": "eslint .",
     "preview": "vite preview"
   },

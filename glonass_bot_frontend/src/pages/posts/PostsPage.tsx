@@ -106,6 +106,7 @@ export const PostsPage: React.FC = () => {
             </div>
 
             <PostList
+                key={`${typeFilter || 'all'}-${refreshTrigger}`}
                 type={typeFilter}
                 onEdit={handleEdit}
                 refreshTrigger={refreshTrigger}
@@ -118,6 +119,7 @@ export const PostsPage: React.FC = () => {
                 size="lg"
             >
                 <PostForm
+                    key={selectedPost?.id || 'new'}
                     post={selectedPost}
                     onSubmit={handleCreateOrUpdate}
                     onCancel={handleCloseModal}

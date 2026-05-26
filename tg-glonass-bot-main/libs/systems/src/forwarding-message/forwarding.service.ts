@@ -26,13 +26,29 @@ export abstract class AbstractPostScheduler implements OnModuleInit {
     await this.syncPosts();
   }
 
-  private parseExpiryDate(dateStr: string): number {
-    try {
-      const [day, month, year] = dateStr.split('.');
-      return new Date(`${year}-${month}-${day}T23:59:59`).getTime();
-    } catch {
-      return 0;
+  private parseExpiryDate(dateStr: string): number | null {
+    const isoDate = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const legacyDate = dateStr.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    const match = isoDate || legacyDate;
+
+    if (!match) {
+      return null;
     }
+
+    const [year, month, day] = isoDate
+      ? [Number(match[1]), Number(match[2]), Number(match[3])]
+      : [Number(match[3]), Number(match[2]), Number(match[1])];
+    const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
+
+    if (
+      endOfDay.getFullYear() !== year ||
+      endOfDay.getMonth() !== month - 1 ||
+      endOfDay.getDate() !== day
+    ) {
+      return null;
+    }
+
+    return endOfDay.getTime();
   }
 
   protected abstract prepareJobData(
@@ -82,7 +98,17 @@ export abstract class AbstractPostScheduler implements OnModuleInit {
   async schedulePost(post: PostDTO) {
     try {
       const expiryDate = this.parseExpiryDate(post.date);
-      if (Date.now() > expiryDate) return;
+
+      if (expiryDate === null) {
+        await this.removePostFromQueue(post.id);
+        this.logger.warn(`[Schedule] Post ${post.id} has invalid end date: ${post.date}`);
+        return;
+      }
+
+      if (Date.now() > expiryDate) {
+        await this.removePostFromQueue(post.id);
+        return;
+      }
 
       const res = await axios.get(`${this.getGateUrl()}/users`, {
         params: { page: 1, limit: 999999, role: UserRole.CLIENT },

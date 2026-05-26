@@ -130,6 +130,7 @@ export const UsersPage: React.FC = () => {
             </div>
 
             <UserList
+                key={`${roleFilter || 'all'}-${typeEmailFilter || 'all'}-${refreshTrigger}`}
                 role={roleFilter}
                 typeEmail={typeEmailFilter}
                 onEdit={handleEdit}
@@ -142,6 +143,7 @@ export const UsersPage: React.FC = () => {
                 title={selectedUser ? 'Редактировать пользователя' : 'Создать пользователя'}
             >
                 <UserForm
+                    key={selectedUser?.id || 'new'}
                     user={selectedUser}
                     onSubmit={handleCreateOrUpdate}
                     onCancel={handleCloseModal}
