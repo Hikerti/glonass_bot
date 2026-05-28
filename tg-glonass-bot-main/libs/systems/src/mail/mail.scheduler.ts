@@ -37,6 +37,7 @@ export class MailScheduler extends AbstractPostScheduler {
 
   protected prepareJobData(post: PostDTO, users: UserDTO[]): ChannelJobData {
     return {
+      postId: post.id,
       users,
       text: post.text,
       media: post.media || [],
