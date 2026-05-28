@@ -30,7 +30,7 @@ export enum PostType {
 
 export const EMAIL_TYPE_MAPPING: Record<UserTypeEmail, string> = {
     [UserTypeEmail.MAIL]: 'ostrovbot@ostrov59.ru',
-    [UserTypeEmail.MAIL2]: 'm.zharovskyh@ostrov59.ru',
+    [UserTypeEmail.MAIL2]: 'kz@ostrov59.ru',
     [UserTypeEmail.MAIL3]: 'avtolyx18@yandex.ru',
 };
 
@@ -41,7 +41,7 @@ export const POST_TYPE_MAPPING: Record<PostType, string> = {
     [PostType.VK]: 'VK',
     [PostType.VK2]: 'VK 2',
     [PostType.MAIL]: 'ostrovbot@ostrov59.ru',
-    [PostType.MAIL2]: 'm.zharovskyh@ostrov59.ru',
+    [PostType.MAIL2]: 'kz@ostrov59.ru',
     [PostType.MAIL3]: 'avtolyx18@yandex.ru',
 };
 

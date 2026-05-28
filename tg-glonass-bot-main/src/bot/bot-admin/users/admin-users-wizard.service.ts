@@ -109,7 +109,7 @@ export class AdminUsersWizardService {
             `С какой почты будут приходить данные?`,
             Markup.inlineKeyboard([
                 [Markup.button.callback('ostrovbot@ostrov59.ru', 'mail')],
-                [Markup.button.callback('m.zharovskyh@ostrov59.ru', 'mail2')],
+                [Markup.button.callback('kz@ostrov59.ru', 'mail2')],
                 [Markup.button.callback('avtolyx18@yandex.ru', 'mail3')],
             ])
         );

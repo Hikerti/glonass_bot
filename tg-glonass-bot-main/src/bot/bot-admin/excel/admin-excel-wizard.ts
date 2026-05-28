@@ -44,7 +44,7 @@ export class ImportUsersWizard {
                 'Файл получен. Теперь выберите, с какой почты будет рассылка для этих пользователей:',
                 Markup.inlineKeyboard([
                     [Markup.button.callback('ostrovbot@ostrov59.ru', 'import_mail_1')],
-                    [Markup.button.callback('m.zharovskyh@ostrov59.ru', 'import_mail_2')],
+                    [Markup.button.callback('kz@ostrov59.ru', 'import_mail_2')],
                     [Markup.button.callback('avtolyx18@yandex.ru', 'import_mail_3')],
                     [Markup.button.callback('❌ Отмена', 'cancel_import')]
                 ])

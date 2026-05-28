@@ -16,7 +16,7 @@ export class MailService extends AbstractNotificationService {
         super();
         this.configs = {
             [PostType.MAIL]: this.resolveMailConfig('MAIL', 'smtp.mail.ru', 'ostrovbot@ostrov59.ru', 'CHANGE_ME'),
-            [PostType.MAIL2]: this.resolveMailConfig('MAIL2', 'smtp.mail.ru', 'm.zharovskyh@ostrov59.ru', 'CHANGE_ME'),
+            [PostType.MAIL2]: this.resolveMailConfig('MAIL2', 'smtp.mail.ru', 'kz@ostrov59.ru', 'CHANGE_ME'),
             [PostType.MAIL3]: this.resolveMailConfig('MAIL3', 'smtp.yandex.ru', 'avtolyx18@yandex.ru', 'CHANGE_ME'),
         };
 
