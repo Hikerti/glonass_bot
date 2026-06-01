@@ -6,6 +6,8 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import * as crypto from 'crypto';
 
+type MailAttachment = NonNullable<nodemailer.SendMailOptions['attachments']>[number];
+
 @Injectable()
 export class MailService extends AbstractNotificationService {
     private transporters: Record<string, nodemailer.Transporter> = {};
@@ -49,6 +51,90 @@ export class MailService extends AbstractNotificationService {
         return crypto.createHmac('sha256', secret).update(payload).digest('hex').substring(0, 12);
     }
 
+    private escapeHtml(value: string): string {
+        return value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    private getMediaFilename(url: string, index: number): string {
+        try {
+            const filename = new URL(url).pathname.split('/').filter(Boolean).pop();
+            return filename ? decodeURIComponent(filename) : `file-${index + 1}`;
+        } catch {
+            return url.split('/').filter(Boolean).pop() || `file-${index + 1}`;
+        }
+    }
+
+    private isInlineImage(url: string, contentType?: string): boolean {
+        if (contentType?.toLowerCase().startsWith('image/')) return true;
+
+        try {
+            return /\.(jpe?g|png|gif|webp)$/i.test(new URL(url).pathname);
+        } catch {
+            return /\.(jpe?g|png|gif|webp)$/i.test(url);
+        }
+    }
+
+    private getHeaderValue(value: unknown): string | undefined {
+        if (Array.isArray(value)) return value[0];
+        return typeof value === 'string' ? value : undefined;
+    }
+
+    private async prepareMailMedia(media: string[]) {
+        const attachments: MailAttachment[] = [];
+        const inlinePreviewHtml: string[] = [];
+        const linkPreviewHtml: string[] = [];
+        const plainLinks: string[] = [];
+
+        for (const [index, url] of media.entries()) {
+            const filename = this.getMediaFilename(url, index);
+            const escapedFilename = this.escapeHtml(filename);
+            const escapedUrl = this.escapeHtml(url);
+
+            try {
+                const res = await axios.get(url, { responseType: 'arraybuffer' });
+                const contentType = this.getHeaderValue(res.headers['content-type']);
+
+                if (this.isInlineImage(url, contentType)) {
+                    const cid = `media-${index}-${crypto.randomUUID()}@tg-glonass`;
+
+                    attachments.push({
+                        filename,
+                        content: Buffer.from(res.data),
+                        cid,
+                        contentDisposition: 'inline',
+                    });
+                    inlinePreviewHtml.push(`
+                        <div style="margin: 16px 0;">
+                            <img src="cid:${cid}" alt="${escapedFilename}" style="display: block; max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #eeeeee;">
+                        </div>
+                    `);
+
+                    continue;
+                }
+            } catch (e) {
+                this.logger.warn(`[MailMedia] Failed to load ${url}: ${e.message}`);
+            }
+
+            plainLinks.push(`${filename}: ${url}`);
+            linkPreviewHtml.push(`
+                <p style="margin: 8px 0;">
+                    <a href="${escapedUrl}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">&#1054;&#1090;&#1082;&#1088;&#1099;&#1090;&#1100; &#1092;&#1072;&#1081;&#1083;: ${escapedFilename}</a>
+                </p>
+            `);
+        }
+
+        return {
+            attachments,
+            html: [...inlinePreviewHtml, ...linkPreviewHtml].join(''),
+            text: plainLinks.length ? `\n\n${plainLinks.join('\n')}` : '',
+        };
+    }
+
     public async send(data: ChannelJobData): Promise<void> {
         const { users, text, media, subject, type } = data;
         const transporter = this.transporters[type];
@@ -60,15 +146,8 @@ export class MailService extends AbstractNotificationService {
             return;
         }
 
-        const attachments = await Promise.all(
-            (media || []).map(async (url) => {
-                try {
-                    const res = await axios.get(url, { responseType: 'arraybuffer' });
-                    return { filename: url.split('/').pop(), content: Buffer.from(res.data) };
-                } catch (e) { return null; }
-            })
-        );
-        const validAttachments = attachments.filter(a => a !== null);
+        const preparedMedia = await this.prepareMailMedia(media || []);
+        const htmlText = this.escapeHtml(text).replace(/\n/g, '<br>');
 
         for (const user of users) {
             if (!user.email) continue;
@@ -81,10 +160,11 @@ export class MailService extends AbstractNotificationService {
                     from: config.user,
                     to: user.email,
                     subject: subject || 'Уведомление',
-                    text: `${text}\n\nОтписаться: ${unsubscribeUrl}`,
+                    text: `${text}${preparedMedia.text}\n\nОтписаться: ${unsubscribeUrl}`,
                     html: `
                         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-                            <div style="white-space: pre-wrap; margin-bottom: 20px;">${text}</div>
+                            <div style="margin-bottom: 20px;">${htmlText}</div>
+                            ${preparedMedia.html}
                             <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
                             <p style="font-size: 12px; color: #999; text-align: center;">
                                 Вы получили это письмо, так как подписаны на рассылку.
@@ -94,7 +174,7 @@ export class MailService extends AbstractNotificationService {
                         </div>
                     `,
                     headers: { 'List-Unsubscribe': `<${unsubscribeUrl}>` },
-                    attachments: validAttachments
+                    attachments: preparedMedia.attachments
                 });
                 await new Promise(res => setTimeout(res, 100));
             } catch (e) {
