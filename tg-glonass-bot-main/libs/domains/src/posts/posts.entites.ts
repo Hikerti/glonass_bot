@@ -32,6 +32,9 @@ export class Post {
     // Legacy database field: this value is the mailing end date.
     date: string;
 
+    @Column({ name: 'start_date', nullable: true, type: 'varchar' })
+    startDate: string | null;
+
     @Column('text', { array: true, default: [] })
     media: string[];
 

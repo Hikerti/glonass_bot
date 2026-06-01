@@ -51,6 +51,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onEdit, onDelete }) =>
             )}
 
             <div className="text-xs text-gray-500 mb-3 space-y-1 bg-gray-50 p-2 rounded">
+                <p>🗓️ Начало рассылки: {post.startDate || 'сразу'}</p>
                 <p>📅 Окончание рассылки: {post.date}</p>
                 <p>⏱️ Интервал: {post.interval}</p>
                 {post.postToWall && <p className="text-blue-600">📌 Публикация на стене</p>}

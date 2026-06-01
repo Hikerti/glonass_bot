@@ -38,6 +38,7 @@ const getInitialFormData = (post?: PostDTO | null): PostCreateDTO => {
             type: post.type,
             text: post.text,
             interval: post.interval,
+            startDate: post.startDate ? toDateInputValue(post.startDate) : getLocalDateInputValue(),
             date: toDateInputValue(post.date),
             media: post.media || [],
             active: post.active,
@@ -50,6 +51,7 @@ const getInitialFormData = (post?: PostDTO | null): PostCreateDTO => {
         type: PostType.MAIL,
         text: '',
         interval: '',
+        startDate: getLocalDateInputValue(),
         date: getLocalDateInputValue(),
         media: [],
         active: true,
@@ -64,9 +66,16 @@ export const PostForm: React.FC<PostFormProps> = ({ post, onSubmit, onCancel }) 
     const [aiPrompt, setAiPrompt] = useState('');
     const [aiLoading, setAiLoading] = useState(false);
     const [aiError, setAiError] = useState<string | null>(null);
+    const today = getLocalDateInputValue();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (formData.startDate && formData.date && formData.startDate > formData.date) {
+            alert('Дата начала не может быть позже даты окончания рассылки');
+            return;
+        }
+
         setLoading(true);
         try {
             await onSubmit(formData);
@@ -189,15 +198,24 @@ export const PostForm: React.FC<PostFormProps> = ({ post, onSubmit, onCancel }) 
             />
 
             <Input
+                label="Дата начала рассылки *"
+                type="date"
+                value={formData.startDate || ''}
+                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                min={post ? undefined : today}
+                required
+            />
+
+            <Input
                 label="Дата окончания рассылки *"
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                min={getLocalDateInputValue()}
+                min={formData.startDate || today}
                 required
             />
             <p className="-mt-3 text-xs text-gray-500">
-                Рассылка начинается сразу после создания и прекращается в конце выбранного дня.
+                Первая отправка будет поставлена на дату начала, повторения прекратятся в конце даты окончания.
             </p>
 
             <MediaUpload

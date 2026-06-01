@@ -42,6 +42,7 @@ export class MailScheduler extends AbstractPostScheduler {
       text: post.text,
       media: post.media || [],
       date: post.date,
+      startDate: post.startDate,
       type: post.type,
       subject: 'Важное уведомление',
     };

@@ -11,6 +11,7 @@ export interface ChannelJobData {
     text: string;
     media: string[];
     date: string;
+    startDate?: string | null;
     type: PostType;
 }
 
@@ -26,7 +27,7 @@ export abstract class AbstractPostScheduler implements OnModuleInit {
     await this.syncPosts();
   }
 
-  private parseExpiryDate(dateStr: string): number | null {
+  private parseScheduleDate(dateStr: string, boundary: 'start' | 'end'): number | null {
     const isoDate = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     const legacyDate = dateStr.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
     const match = isoDate || legacyDate;
@@ -38,17 +39,27 @@ export abstract class AbstractPostScheduler implements OnModuleInit {
     const [year, month, day] = isoDate
       ? [Number(match[1]), Number(match[2]), Number(match[3])]
       : [Number(match[3]), Number(match[2]), Number(match[1])];
-    const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
+    const scheduleDate = boundary === 'start'
+      ? new Date(year, month - 1, day, 0, 0, 0, 0)
+      : new Date(year, month - 1, day, 23, 59, 59, 999);
 
     if (
-      endOfDay.getFullYear() !== year ||
-      endOfDay.getMonth() !== month - 1 ||
-      endOfDay.getDate() !== day
+      scheduleDate.getFullYear() !== year ||
+      scheduleDate.getMonth() !== month - 1 ||
+      scheduleDate.getDate() !== day
     ) {
       return null;
     }
 
-    return endOfDay.getTime();
+    return scheduleDate.getTime();
+  }
+
+  private parseExpiryDate(dateStr: string): number | null {
+    return this.parseScheduleDate(dateStr, 'end');
+  }
+
+  private parseStartDate(dateStr?: string | null): number {
+    return dateStr ? this.parseScheduleDate(dateStr, 'start') ?? NaN : 0;
   }
 
   protected abstract prepareJobData(
@@ -98,6 +109,8 @@ export abstract class AbstractPostScheduler implements OnModuleInit {
   async schedulePost(post: PostDTO) {
     try {
       const expiryDate = this.parseExpiryDate(post.date);
+      const startDate = this.parseStartDate(post.startDate);
+      const now = Date.now();
 
       if (expiryDate === null) {
         await this.removePostFromQueue(post.id);
@@ -105,7 +118,19 @@ export abstract class AbstractPostScheduler implements OnModuleInit {
         return;
       }
 
-      if (Date.now() > expiryDate) {
+      if (Number.isNaN(startDate)) {
+        await this.removePostFromQueue(post.id);
+        this.logger.warn(`[Schedule] Post ${post.id} has invalid start date: ${post.startDate}`);
+        return;
+      }
+
+      if (startDate > expiryDate) {
+        await this.removePostFromQueue(post.id);
+        this.logger.warn(`[Schedule] Post ${post.id} has start date after end date`);
+        return;
+      }
+
+      if (now > expiryDate) {
         await this.removePostFromQueue(post.id);
         return;
       }
@@ -125,11 +150,16 @@ export abstract class AbstractPostScheduler implements OnModuleInit {
       const repeatableJobs =
         intervalMs > 0 ? await this.queue.getRepeatableJobs() : [];
       const hasRepeatableJob = repeatableJobs.some((j) => j.id === post.id);
+      const immediateJob = await this.queue.getJob(this.getImmediateJobId(post.id));
+      const shouldRunInitialJob =
+        intervalMs > 0 &&
+        !immediateJob &&
+        this.shouldRunImmediatelyOnFirstSchedule(post);
 
       if (
-        intervalMs > 0 &&
+        shouldRunInitialJob &&
         !hasRepeatableJob &&
-        this.shouldRunImmediatelyOnFirstSchedule(post)
+        now >= startDate
       ) {
         await this.queue.add(jobData, {
           jobId: this.getImmediateJobId(post.id),
@@ -142,6 +172,23 @@ export abstract class AbstractPostScheduler implements OnModuleInit {
         );
       }
 
+      if (
+        shouldRunInitialJob &&
+        !hasRepeatableJob &&
+        startDate > now
+      ) {
+        await this.queue.add(jobData, {
+          jobId: this.getImmediateJobId(post.id),
+          delay: startDate - now,
+          removeOnComplete: true,
+          removeOnFail: true,
+        });
+
+        this.logger.log(
+          `[Schedule] 🚀 Пост ${post.id} добавлен в очередь ${this.queue.name} для отправки в дату начала`,
+        );
+      }
+
       const options: any = {
         jobId: post.id,
         removeOnComplete: true,
@@ -149,7 +196,11 @@ export abstract class AbstractPostScheduler implements OnModuleInit {
       };
 
       if (intervalMs > 0) {
-        options.repeat = { every: intervalMs, endDate: new Date(expiryDate) };
+        options.repeat = {
+          every: intervalMs,
+          startDate: new Date(startDate || now),
+          endDate: new Date(expiryDate),
+        };
       }
 
       await this.queue.add(jobData, options);

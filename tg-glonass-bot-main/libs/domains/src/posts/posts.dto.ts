@@ -19,6 +19,10 @@ export class PostDTO {
     // Legacy API name: this value is the mailing end date.
     date: string;
 
+    @IsString()
+    @IsOptional()
+    startDate?: string | null;
+
     @IsArray()
     @IsString({ each: true })
     media: string[];
@@ -49,6 +53,7 @@ export class PostDTO {
             text: model.text,
             interval: model.interval,
             date: model.date,
+            startDate: model.startDate,
             media: model.media,
             active: model.active,
             postToWall: model.postToWall,

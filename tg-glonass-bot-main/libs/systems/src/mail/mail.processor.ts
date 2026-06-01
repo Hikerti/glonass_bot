@@ -37,7 +37,7 @@ export class MailProcessor {
         return dataPostId || idMatch?.[0] || String(job.id).replace(/:immediate$/, '');
     }
 
-    private parseExpiryDate(dateStr: string): number | null {
+    private parseScheduleDate(dateStr: string, boundary: 'start' | 'end'): number | null {
         const isoDate = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
         const legacyDate = dateStr.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
         const match = isoDate || legacyDate;
@@ -47,9 +47,19 @@ export class MailProcessor {
         const [year, month, day] = isoDate
             ? [Number(match[1]), Number(match[2]), Number(match[3])]
             : [Number(match[3]), Number(match[2]), Number(match[1])];
-        const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
+        const scheduleDate = boundary === 'start'
+            ? new Date(year, month - 1, day, 0, 0, 0, 0)
+            : new Date(year, month - 1, day, 23, 59, 59, 999);
 
-        return endOfDay.getTime();
+        return scheduleDate.getTime();
+    }
+
+    private parseExpiryDate(dateStr: string): number | null {
+        return this.parseScheduleDate(dateStr, 'end');
+    }
+
+    private parseStartDate(dateStr?: string | null): number {
+        return dateStr ? this.parseScheduleDate(dateStr, 'start') ?? NaN : 0;
     }
 
     private async getFreshJobData(job: Job<ChannelJobData>): Promise<ChannelJobData | null> {
@@ -64,8 +74,14 @@ export class MailProcessor {
         }
 
         const expiryDate = this.parseExpiryDate(post.date);
+        const startDate = this.parseStartDate(post.startDate);
         if (expiryDate === null || Date.now() > expiryDate) {
             this.logger.warn(`[Processor] Пост ${postId} завершён или имеет некорректную дату, пропускаю рассылку`);
+            return null;
+        }
+
+        if (Number.isNaN(startDate) || Date.now() < startDate) {
+            this.logger.warn(`[Processor] Пост ${postId} ещё не достиг даты начала, пропускаю рассылку`);
             return null;
         }
 
@@ -86,6 +102,7 @@ export class MailProcessor {
             text: post.text,
             media: post.media || [],
             date: post.date,
+            startDate: post.startDate,
             type: post.type,
         };
     }
