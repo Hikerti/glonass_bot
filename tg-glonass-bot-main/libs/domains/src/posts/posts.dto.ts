@@ -27,6 +27,11 @@ export class PostDTO {
     @IsString({ each: true })
     media: string[];
 
+    @IsArray()
+    @IsString({ each: true })
+    @IsOptional()
+    targetUserIds?: string[];
+
     @IsBoolean()
     active: boolean;
 
@@ -55,6 +60,7 @@ export class PostDTO {
             date: model.date,
             startDate: model.startDate,
             media: model.media,
+            targetUserIds: model.targetUserIds || [],
             active: model.active,
             postToWall: model.postToWall,
             postToMessage: model.postToMessage,

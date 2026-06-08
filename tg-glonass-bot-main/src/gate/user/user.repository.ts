@@ -223,24 +223,36 @@ export class UserRepository {
         return UserDTO.fromModel(userToDelete);
     }
 
-    async getList(page: number = 1, limit: number = 10, role?: UserRole, typeEmail?: UserTypeEmail): Promise<PaginationType<UserDTO>> {
+    async getList(page: number = 1, limit: number = 10, role?: UserRole, typeEmail?: UserTypeEmail, search?: string): Promise<PaginationType<UserDTO>> {
         const skip = (page - 1) * limit;
 
-        const whereCondition: { role?: UserRole; typeEmail?: UserTypeEmail } = {};
+        const query = this.userRepository
+            .createQueryBuilder('user')
+            .skip(skip)
+            .take(limit)
+            .orderBy('"user"."created_at"', 'DESC');
 
         if (role !== undefined && role !== null) {
-            whereCondition.role = role;
+            query.andWhere('"user"."role" = :role', { role });
         }
         if (typeEmail !== undefined && typeEmail !== null) {
-            whereCondition.typeEmail = typeEmail;
+            query.andWhere('"user"."type_email" = :typeEmail', { typeEmail });
         }
 
-        const [items, total] = await this.userRepository.findAndCount({
-            skip,
-            take: limit,
-            order: { createdAt: 'DESC' },
-            where: whereCondition,
-        });
+        const normalizedSearch = search?.trim();
+        if (normalizedSearch) {
+            query.andWhere(
+                `(
+                    "user"."name" ILIKE :search OR
+                    "user"."email" ILIKE :search OR
+                    "user"."phone" ILIKE :search OR
+                    "user"."description" ILIKE :search
+                )`,
+                { search: `%${normalizedSearch}%` },
+            );
+        }
+
+        const [items, total] = await query.getManyAndCount();
 
         const isLast = (page * limit) >= total;
 

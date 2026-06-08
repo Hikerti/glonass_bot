@@ -9,6 +9,7 @@ import { useInfiniteScroll } from '../../shared/hooks/useInfiniteScroll';
 interface UserListProps {
     role?: UserRole;
     typeEmail?: UserTypeEmail;
+    search?: string;
     onEdit: (user: UserDTO) => void;
     refreshTrigger?: number;
 }
@@ -16,6 +17,7 @@ interface UserListProps {
 export const UserList: React.FC<UserListProps> = ({
                                                       role,
                                                       typeEmail,
+                                                      search,
                                                       onEdit,
                                                       refreshTrigger
                                                   }) => {
@@ -39,7 +41,8 @@ export const UserList: React.FC<UserListProps> = ({
                 page: pageNum,
                 limit: 10,
                 role,
-                typeEmail
+                typeEmail,
+                search,
             });
 
             if (requestId !== requestIdRef.current) return false;
@@ -60,7 +63,7 @@ export const UserList: React.FC<UserListProps> = ({
                 setLoading(false);
             }
         }
-    }, [role, typeEmail]);
+    }, [role, typeEmail, search]);
 
     useEffect(() => {
         const requestId = ++requestIdRef.current;
@@ -72,7 +75,8 @@ export const UserList: React.FC<UserListProps> = ({
                     page: 1,
                     limit: 10,
                     role,
-                    typeEmail
+                    typeEmail,
+                    search,
                 });
 
                 if (requestId !== requestIdRef.current) return;
@@ -102,7 +106,7 @@ export const UserList: React.FC<UserListProps> = ({
             requestIdRef.current += 1;
             loadingRef.current = false;
         };
-    }, [role, typeEmail, refreshTrigger]);
+    }, [role, typeEmail, search, refreshTrigger]);
 
     const handleLoadMore = useCallback(() => {
         const nextPage = page + 1;

@@ -8,13 +8,17 @@ import { UploadExcel } from '../../features/user/upload-excel/UploadExcel';
 import { Modal } from '../../shared/ui/Modal/Modal';
 import { Button } from '../../shared/ui/Button/Button';
 import { Select } from '../../shared/ui/Select/Select';
+import { Input } from '../../shared/ui/Input/Input';
+import { useDebounce } from '../../shared/hooks/useDebounce';
 
 export const UsersPage: React.FC = () => {
     const [selectedUser, setSelectedUser] = useState<UserDTO | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [roleFilter, setRoleFilter] = useState<UserRole | undefined>(undefined);
     const [typeEmailFilter, setTypeEmailFilter] = useState<UserTypeEmail | undefined>(undefined);
+    const [search, setSearch] = useState('');
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const debouncedSearch = useDebounce(search, 400);
 
     const handleCreateOrUpdate = async (data: UserCreateDTO | UserUpdateDTO) => {
         try {
@@ -50,6 +54,7 @@ export const UsersPage: React.FC = () => {
     const handleResetFilters = () => {
         setRoleFilter(undefined);
         setTypeEmailFilter(undefined);
+        setSearch('');
     };
 
     // Опции для выбора типа email с реальными адресами
@@ -77,6 +82,15 @@ export const UsersPage: React.FC = () => {
 
                     {/* Фильтры */}
                     <div className="flex flex-wrap gap-4 items-start bg-gray-50 p-4 rounded-lg">
+                        <div className="flex-1 min-w-[260px]">
+                            <Input
+                                label="Поиск"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Имя, email, телефон или описание"
+                            />
+                        </div>
+
                         <div className="flex-1 min-w-[200px]">
                             <Select
                                 label="Роль"
@@ -99,7 +113,7 @@ export const UsersPage: React.FC = () => {
                             />
                         </div>
 
-                        {(roleFilter || typeEmailFilter) && (
+                        {(roleFilter || typeEmailFilter || search) && (
                             <div className="flex items-end">
                                 <Button variant="secondary" onClick={handleResetFilters}>
                                     ✖️ Сбросить
@@ -109,7 +123,7 @@ export const UsersPage: React.FC = () => {
                     </div>
 
                     {/* Информация о фильтрах */}
-                    {(roleFilter || typeEmailFilter) && (
+                    {(roleFilter || typeEmailFilter || debouncedSearch) && (
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
                             <p className="font-medium text-blue-900 mb-1">Активные фильтры:</p>
                             <div className="flex flex-wrap gap-2">
@@ -130,9 +144,10 @@ export const UsersPage: React.FC = () => {
             </div>
 
             <UserList
-                key={`${roleFilter || 'all'}-${typeEmailFilter || 'all'}-${refreshTrigger}`}
+                key={`${roleFilter || 'all'}-${typeEmailFilter || 'all'}-${debouncedSearch || 'search'}-${refreshTrigger}`}
                 role={roleFilter}
                 typeEmail={typeEmailFilter}
+                search={debouncedSearch}
                 onEdit={handleEdit}
                 refreshTrigger={refreshTrigger}
             />

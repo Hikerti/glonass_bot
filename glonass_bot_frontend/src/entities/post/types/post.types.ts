@@ -10,6 +10,7 @@ export interface PostDTO {
     /** End date of the mailing schedule. */
     date: string;
     media: string[];
+    targetUserIds?: string[];
     active: boolean;
     postToWall?: boolean;
     postToMessage?: boolean;
@@ -25,6 +26,7 @@ export interface PostCreateDTO {
     /** End date of the mailing schedule. */
     date: string;
     media: string[];
+    targetUserIds?: string[];
     active: boolean;
     postToWall?: boolean;
     postToMessage?: boolean;

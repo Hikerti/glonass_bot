@@ -12,6 +12,7 @@ interface PostCardProps {
 export const PostCard: React.FC<PostCardProps> = ({ post, onEdit, onDelete }) => {
     const typeLabel = getPostTypeLabel(post.type);
     const typeIcon = getPostTypeIcon(post.type);
+    const targetUsersCount = post.targetUserIds?.length || 0;
 
     return (
         <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
@@ -51,6 +52,9 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onEdit, onDelete }) =>
             )}
 
             <div className="text-xs text-gray-500 mb-3 space-y-1 bg-gray-50 p-2 rounded">
+                <p className={targetUsersCount ? 'text-purple-700' : undefined}>
+                    Получатели: {targetUsersCount ? `выбрано ${targetUsersCount}` : 'вся база'}
+                </p>
                 <p>🗓️ Начало рассылки: {post.startDate || 'сразу'}</p>
                 <p>📅 Окончание рассылки: {post.date}</p>
                 <p>⏱️ Интервал: {post.interval}</p>

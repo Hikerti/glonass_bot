@@ -38,6 +38,9 @@ export class Post {
     @Column('text', { array: true, default: [] })
     media: string[];
 
+    @Column('uuid', { name: 'target_user_ids', array: true, default: [] })
+    targetUserIds: string[];
+
     @Column({ default: false })
     active: boolean;
 

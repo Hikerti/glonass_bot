@@ -13,6 +13,7 @@ export interface ChannelJobData {
     date: string;
     startDate?: string | null;
     type: PostType;
+    targetUserIds?: string[];
 }
 
 @Injectable()
@@ -74,6 +75,10 @@ export abstract class AbstractPostScheduler implements OnModuleInit {
 
   protected getImmediateJobId(postId: string): string {
     return `${postId}:immediate`;
+  }
+
+  protected getQueueForPost(_post: PostDTO): Queue {
+    return this.queue;
   }
 
   private getGateUrl() {
@@ -145,12 +150,13 @@ export abstract class AbstractPostScheduler implements OnModuleInit {
         post,
         filtered.map(UserDTO.fromModel),
       );
+      const queue = this.getQueueForPost(post);
 
       const intervalMs = parseInterval(post.interval);
       const repeatableJobs =
-        intervalMs > 0 ? await this.queue.getRepeatableJobs() : [];
+        intervalMs > 0 ? await queue.getRepeatableJobs() : [];
       const hasRepeatableJob = repeatableJobs.some((j) => j.id === post.id);
-      const immediateJob = await this.queue.getJob(this.getImmediateJobId(post.id));
+      const immediateJob = await queue.getJob(this.getImmediateJobId(post.id));
       const shouldRunInitialJob =
         intervalMs > 0 &&
         !immediateJob &&
@@ -161,7 +167,7 @@ export abstract class AbstractPostScheduler implements OnModuleInit {
         !hasRepeatableJob &&
         now >= startDate
       ) {
-        await this.queue.add(jobData, {
+        await queue.add(jobData, {
           jobId: this.getImmediateJobId(post.id),
           removeOnComplete: true,
           removeOnFail: true,
@@ -177,7 +183,7 @@ export abstract class AbstractPostScheduler implements OnModuleInit {
         !hasRepeatableJob &&
         startDate > now
       ) {
-        await this.queue.add(jobData, {
+        await queue.add(jobData, {
           jobId: this.getImmediateJobId(post.id),
           delay: startDate - now,
           removeOnComplete: true,
@@ -203,7 +209,7 @@ export abstract class AbstractPostScheduler implements OnModuleInit {
         };
       }
 
-      await this.queue.add(jobData, options);
+      await queue.add(jobData, options);
       this.logger.log(
         `[Schedule] ✅ Пост ${post.id} добавлен в очередь ${this.queue.name}`,
       );

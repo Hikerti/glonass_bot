@@ -7,8 +7,8 @@ import {PaginationType} from "@shared";
 export class UserService {
     constructor(private readonly userRepository: UserRepository) {}
 
-    async getListUsers(page: number, limit: number, role?: UserRole, typeEmail?: UserTypeEmail): Promise<PaginationType<UserDTO>> {
-        return await this.userRepository.getList(page, limit, role, typeEmail)
+    async getListUsers(page: number, limit: number, role?: UserRole, typeEmail?: UserTypeEmail, search?: string): Promise<PaginationType<UserDTO>> {
+        return await this.userRepository.getList(page, limit, role, typeEmail, search)
     }
 
     async create(dto: UserDTO.Create): Promise<UserDTO> {

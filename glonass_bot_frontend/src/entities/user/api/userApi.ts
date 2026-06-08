@@ -7,6 +7,7 @@ interface GetUsersParams {
     page: number;
     limit: number;
     role?: UserRole;
+    search?: string;
     typeEmail?: UserTypeEmail; // Добавили фильтр по typeEmail
 }
 
@@ -18,6 +19,7 @@ export const userApi = {
         };
 
         if (params.role) queryParams.role = params.role;
+        if (params.search) queryParams.search = params.search;
         if (params.typeEmail) queryParams.typeEmail = params.typeEmail;
 
         const { data } = await api.get<PaginationType<UserDTO>>(API_ENDPOINTS.users, {

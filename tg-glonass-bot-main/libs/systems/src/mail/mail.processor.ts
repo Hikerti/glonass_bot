@@ -94,21 +94,30 @@ export class MailProcessor {
             },
         });
         const users = usersResponse.data.items || [];
+        const targetUserIds = new Set(post.targetUserIds || []);
+        const filteredUsers = targetUserIds.size
+            ? users.filter((user) => targetUserIds.has(user.id))
+            : users;
 
         return {
             ...job.data,
             postId,
-            users,
+            users: filteredUsers,
             text: post.text,
             media: post.media || [],
             date: post.date,
             startDate: post.startDate,
             type: post.type,
+            targetUserIds: post.targetUserIds || [],
         };
     }
 
     @Process()
     async handleMailJob(job: Job<ChannelJobData>) {
+        await this.processJob(job);
+    }
+
+    protected async processJob(job: Job<ChannelJobData>) {
         const staleUsersCount = job.data.users?.length || 0;
         this.logger.log(`[Processor] 📬 Взял в работу пост ${job.id} (в старой задаче юзеров: ${staleUsersCount})`);
 
@@ -126,5 +135,20 @@ export class MailProcessor {
             this.logger.error(`[Processor] Ошибка рассылки ${job.id}: ${e.message}`);
             throw e;
         }
+    }
+}
+
+@Processor('mail-targeted')
+export class TargetedMailProcessor extends MailProcessor {
+    constructor(
+        mailService: MailService,
+        config: ConfigService,
+    ) {
+        super(mailService, config);
+    }
+
+    @Process()
+    async handleTargetedMailJob(job: Job<ChannelJobData>) {
+        await this.processJob(job);
     }
 }

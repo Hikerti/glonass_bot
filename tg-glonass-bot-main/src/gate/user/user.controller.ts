@@ -23,8 +23,9 @@ export class UserController {
         @Query('limit', ParseIntPipe) limit = 10,
         @Query('role') role?: string,
         @Query('typeEmail') typeEmail?: string,
+        @Query('search') search?: string,
     ): Promise<{ items: UserDTO[]; total: number; page: number; limit: number; isLast?: boolean }> {
-        return await this.userService.getListUsers(page, limit, role as UserRole, typeEmail as UserTypeEmail);
+        return await this.userService.getListUsers(page, limit, role as UserRole, typeEmail as UserTypeEmail, search);
     }
 
     @Post()

@@ -17,11 +17,18 @@ export class MailScheduler extends AbstractPostScheduler {
   constructor(
     protected readonly config: ConfigService,
     @InjectQueue('mail') protected readonly queue: Queue,
+    @InjectQueue('mail-targeted') private readonly targetedQueue: Queue,
   ) {
     super(config);
   }
 
+  protected getQueueForPost(post: PostDTO): Queue {
+    return post.targetUserIds?.length ? this.targetedQueue : this.queue;
+  }
+
   protected filterUsersForPost(users: any[], post: PostDTO): User[] {
+    const targetIds = new Set(post.targetUserIds || []);
+
     return users.filter((user) => {
       const hasEmail = !!user.email;
       const rawUserType = user.typeEmail || user.type_email;
@@ -31,7 +38,9 @@ export class MailScheduler extends AbstractPostScheduler {
       const uType = String(rawUserType).toLowerCase().trim();
       const pType = String(post.type).toLowerCase().trim();
 
-      return hasEmail && uType === pType;
+      if (!hasEmail || uType !== pType) return false;
+
+      return targetIds.size === 0 || targetIds.has(user.id);
     });
   }
 
@@ -44,12 +53,67 @@ export class MailScheduler extends AbstractPostScheduler {
       date: post.date,
       startDate: post.startDate,
       type: post.type,
+      targetUserIds: post.targetUserIds || [],
       subject: 'Важное уведомление',
     };
   }
 
   // Метод удаления, который мы добавляем для фикса проблемы с очередью
+  private async removeFromPrimaryQueue(postId: string) {
+    const repeatableJobs = await this.queue.getRepeatableJobs();
+    const job = repeatableJobs.find((j) => j.id === postId);
+
+    if (job) {
+      await this.queue.removeRepeatableByKey(job.key);
+    }
+
+    const normalJob = await this.queue.getJob(postId);
+    if (normalJob && !(await normalJob.isActive())) {
+      await normalJob.remove();
+    }
+
+    const immediateJob = await this.queue.getJob(
+      this.getImmediateJobId(postId),
+    );
+    if (immediateJob && !(await immediateJob.isActive())) {
+      await immediateJob.remove();
+    }
+  }
+
+  private async removeFromTargetedQueue(postId: string) {
+    const repeatableJobs = await this.targetedQueue.getRepeatableJobs();
+    const job = repeatableJobs.find((j) => j.id === postId);
+
+    if (job) {
+      await this.targetedQueue.removeRepeatableByKey(job.key);
+    }
+
+    const normalJob = await this.targetedQueue.getJob(postId);
+    if (normalJob && !(await normalJob.isActive())) {
+      await normalJob.remove();
+    }
+
+    const immediateJob = await this.targetedQueue.getJob(
+      this.getImmediateJobId(postId),
+    );
+    if (immediateJob && !(await immediateJob.isActive())) {
+      await immediateJob.remove();
+    }
+  }
+
+  async schedulePost(post: PostDTO) {
+    if (post.targetUserIds?.length) {
+      await this.removeFromPrimaryQueue(post.id);
+    } else {
+      await this.removeFromTargetedQueue(post.id);
+    }
+
+    await super.schedulePost(post);
+  }
+
   async removePostFromQueue(postId: string) {
+    await this.removeFromTargetedQueue(postId);
+
     const repeatableJobs = await this.queue.getRepeatableJobs();
     const job = repeatableJobs.find((j) => j.id === postId);
 
@@ -90,7 +154,10 @@ export class MailScheduler extends AbstractPostScheduler {
         : configuredGateUrl;
     const types = [PostType.MAIL, PostType.MAIL2, PostType.MAIL3];
 
-    const currentRepeatableJobs = await this.queue.getRepeatableJobs();
+    const currentRepeatableJobs = [
+      ...(await this.queue.getRepeatableJobs()),
+      ...(await this.targetedQueue.getRepeatableJobs()),
+    ];
     const queuedPostIds = currentRepeatableJobs
       .map((j) => j.id)
       .filter((id): id is string => !!id); // Убираем undefined для TS

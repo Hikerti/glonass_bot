@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { PostDTO, PostCreateDTO, PostUpdateDTO } from '../../entities/post/types/post.types';
-import { DISABLED_POST_TYPES, PostType, POST_TYPE_MAPPING } from '../../shared/types/common.types';
+import { DISABLED_POST_TYPES, PostType, POST_TYPE_MAPPING, UserRole, UserTypeEmail } from '../../shared/types/common.types';
 import { Input } from '../../shared/ui/Input/Input';
 import { Select } from '../../shared/ui/Select/Select';
 import { Button } from '../../shared/ui/Button/Button';
 import { MediaUpload } from '../../features/post/media-upload/MediaUpload';
 import { postApi } from '../../entities/post/api/postApi';
+import { userApi } from '../../entities/user/api/userApi';
+import { UserDTO } from '../../entities/user/types/user.types';
+import { useDebounce } from '../../shared/hooks/useDebounce';
 
 interface PostFormProps {
     post?: PostDTO | null;
@@ -32,6 +35,12 @@ const toDateInputValue = (date: string) => {
     return date;
 };
 
+const MAIL_POST_TYPES = [PostType.MAIL, PostType.MAIL2, PostType.MAIL3];
+
+const isMailPostType = (type: PostType): type is PostType.MAIL | PostType.MAIL2 | PostType.MAIL3 => {
+    return MAIL_POST_TYPES.includes(type);
+};
+
 const getInitialFormData = (post?: PostDTO | null): PostCreateDTO => {
     if (post) {
         return {
@@ -41,6 +50,7 @@ const getInitialFormData = (post?: PostDTO | null): PostCreateDTO => {
             startDate: post.startDate ? toDateInputValue(post.startDate) : getLocalDateInputValue(),
             date: toDateInputValue(post.date),
             media: post.media || [],
+            targetUserIds: post.targetUserIds || [],
             active: post.active,
             postToWall: post.postToWall,
             postToMessage: post.postToMessage,
@@ -54,6 +64,7 @@ const getInitialFormData = (post?: PostDTO | null): PostCreateDTO => {
         startDate: getLocalDateInputValue(),
         date: getLocalDateInputValue(),
         media: [],
+        targetUserIds: [],
         active: true,
         postToWall: false,
         postToMessage: false,
@@ -66,7 +77,62 @@ export const PostForm: React.FC<PostFormProps> = ({ post, onSubmit, onCancel }) 
     const [aiPrompt, setAiPrompt] = useState('');
     const [aiLoading, setAiLoading] = useState(false);
     const [aiError, setAiError] = useState<string | null>(null);
+    const [targetedMode, setTargetedMode] = useState(() => Boolean(post?.targetUserIds?.length));
+    const [recipientSearch, setRecipientSearch] = useState('');
+    const [recipientOptions, setRecipientOptions] = useState<UserDTO[]>([]);
+    const [recipientLoading, setRecipientLoading] = useState(false);
+    const [recipientError, setRecipientError] = useState<string | null>(null);
+    const [knownRecipients, setKnownRecipients] = useState<Record<string, UserDTO>>({});
+    const debouncedRecipientSearch = useDebounce(recipientSearch, 400);
     const today = getLocalDateInputValue();
+    const isMailPost = isMailPostType(formData.type);
+
+    useEffect(() => {
+        if (!targetedMode || !isMailPost) {
+            return;
+        }
+
+        let cancelled = false;
+
+        Promise.resolve().then(() => {
+            if (cancelled) return null;
+
+            setRecipientLoading(true);
+            setRecipientError(null);
+
+            return userApi.getList({
+                page: 1,
+                limit: 50,
+                role: UserRole.CLIENT,
+                typeEmail: formData.type as unknown as UserTypeEmail,
+                search: debouncedRecipientSearch,
+            });
+        }).then((data) => {
+            if (!data) return;
+            if (cancelled) return;
+
+            setRecipientOptions(data.items);
+            setKnownRecipients((prev) => {
+                const next = { ...prev };
+                data.items.forEach((user) => {
+                    next[user.id] = user;
+                });
+                return next;
+            });
+        }).catch((error) => {
+            if (cancelled) return;
+
+            console.error('Error loading recipients:', error);
+            setRecipientError('Не удалось загрузить получателей');
+            setRecipientOptions([]);
+        }).finally(() => {
+            if (!cancelled) setRecipientLoading(false);
+        });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [targetedMode, isMailPost, formData.type, debouncedRecipientSearch]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -76,9 +142,17 @@ export const PostForm: React.FC<PostFormProps> = ({ post, onSubmit, onCancel }) 
             return;
         }
 
+        if (targetedMode && isMailPost && !(formData.targetUserIds || []).length) {
+            alert('Выберите хотя бы одного получателя для точечной рассылки');
+            return;
+        }
+
         setLoading(true);
         try {
-            await onSubmit(formData);
+            await onSubmit({
+                ...formData,
+                targetUserIds: targetedMode && isMailPost ? formData.targetUserIds || [] : [],
+            });
         } catch (error) {
             console.error('Error submitting form:', error);
             alert('Ошибка при сохранении поста');
@@ -99,6 +173,36 @@ export const PostForm: React.FC<PostFormProps> = ({ post, onSubmit, onCancel }) 
             ...prev,
             media: prev.media.filter(m => m !== url),
         }));
+    };
+
+    const handlePostTypeChange = (type: PostType) => {
+        setFormData(prev => ({
+            ...prev,
+            type,
+            targetUserIds: [],
+        }));
+        setTargetedMode(false);
+        setRecipientSearch('');
+    };
+
+    const handleTargetedModeChange = (enabled: boolean) => {
+        setTargetedMode(enabled);
+        if (!enabled) {
+            setFormData(prev => ({ ...prev, targetUserIds: [] }));
+        }
+    };
+
+    const handleRecipientToggle = (user: UserDTO, checked: boolean) => {
+        setKnownRecipients(prev => ({ ...prev, [user.id]: user }));
+        setFormData(prev => {
+            const currentIds = prev.targetUserIds || [];
+            return {
+                ...prev,
+                targetUserIds: checked
+                    ? Array.from(new Set([...currentIds, user.id]))
+                    : currentIds.filter(id => id !== user.id),
+            };
+        });
     };
 
     const handleGenerateText = async () => {
@@ -132,6 +236,10 @@ export const PostForm: React.FC<PostFormProps> = ({ post, onSubmit, onCancel }) 
             value: key,
             label: label,
         }));
+    const selectedTargetIds = formData.targetUserIds || [];
+    const selectedRecipients = selectedTargetIds
+        .map(id => knownRecipients[id])
+        .filter((user): user is UserDTO => Boolean(user));
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -139,7 +247,7 @@ export const PostForm: React.FC<PostFormProps> = ({ post, onSubmit, onCancel }) 
                 <Select
                     label="Канал рассылки *"
                     value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value as PostType })}
+                    onChange={(e) => handlePostTypeChange(e.target.value as PostType)}
                     options={postTypeOptions}
                     required
                 />
@@ -147,6 +255,87 @@ export const PostForm: React.FC<PostFormProps> = ({ post, onSubmit, onCancel }) 
                     Выберите канал, через который будет отправлен пост
                 </p>
             </div>
+
+            {isMailPost && (
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={targetedMode}
+                            onChange={(e) => handleTargetedModeChange(e.target.checked)}
+                            className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-sm font-medium text-gray-700">
+                            Точечная рассылка выбранным получателям
+                        </span>
+                    </label>
+
+                    {!targetedMode && (
+                        <p className="text-xs text-gray-500">
+                            По умолчанию письмо уйдёт всей базе, которая привязана к выбранной системной почте.
+                        </p>
+                    )}
+
+                    {targetedMode && (
+                        <div className="space-y-3">
+                            <Input
+                                label="Поиск получателей"
+                                value={recipientSearch}
+                                onChange={(e) => setRecipientSearch(e.target.value)}
+                                placeholder="Имя, email, телефон или описание"
+                            />
+
+                            <div className="max-h-56 overflow-y-auto rounded border border-gray-200 bg-white">
+                                {recipientLoading && (
+                                    <p className="p-3 text-sm text-gray-500">Загрузка получателей...</p>
+                                )}
+
+                                {!recipientLoading && recipientError && (
+                                    <p className="p-3 text-sm text-red-600">{recipientError}</p>
+                                )}
+
+                                {!recipientLoading && !recipientError && recipientOptions.length === 0 && (
+                                    <p className="p-3 text-sm text-gray-500">Получатели не найдены</p>
+                                )}
+
+                                {!recipientLoading && !recipientError && recipientOptions.map((user) => (
+                                    <label key={user.id} className="flex items-start gap-3 border-b border-gray-100 p-3 last:border-b-0 cursor-pointer hover:bg-gray-50">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedTargetIds.includes(user.id)}
+                                            onChange={(e) => handleRecipientToggle(user, e.target.checked)}
+                                            className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                        />
+                                        <span className="min-w-0">
+                                            <span className="block text-sm font-medium text-gray-800">{user.name}</span>
+                                            <span className="block text-xs text-gray-500 break-all">{user.email}</span>
+                                            {user.phone && <span className="block text-xs text-gray-500">{user.phone}</span>}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+
+                            <div className="rounded border border-blue-100 bg-blue-50 p-3 text-sm text-blue-900">
+                                Выбрано получателей: {selectedTargetIds.length}
+                                {selectedRecipients.length > 0 && (
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                        {selectedRecipients.map((user) => (
+                                            <button
+                                                key={user.id}
+                                                type="button"
+                                                onClick={() => handleRecipientToggle(user, false)}
+                                                className="rounded-full bg-white px-3 py-1 text-xs text-blue-700 border border-blue-200 hover:bg-blue-100"
+                                            >
+                                                {user.name} ×
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
 
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
