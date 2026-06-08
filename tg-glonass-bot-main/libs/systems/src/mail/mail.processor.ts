@@ -147,8 +147,4 @@ export class TargetedMailProcessor extends MailProcessor {
         super(mailService, config);
     }
 
-    @Process()
-    async handleTargetedMailJob(job: Job<ChannelJobData>) {
-        await this.processJob(job);
-    }
 }
