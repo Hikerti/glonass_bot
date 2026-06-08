@@ -15,6 +15,14 @@ export class UserDTO {
 
     @IsString()
     @IsOptional()
+    phone?: string | null;
+
+    @IsString()
+    @IsOptional()
+    description?: string | null;
+
+    @IsString()
+    @IsOptional()
     tgId?: string | null;
 
     @IsString()
@@ -44,6 +52,8 @@ export class UserDTO {
             id: model.id,
             name: model.name,
             email: model.email,
+            phone: model.phone ?? null,
+            description: model.description ?? null,
             tgId: model.tgId ?? null,
             vkId: model.vkId ?? null,
             typeEmail: model.typeEmail,

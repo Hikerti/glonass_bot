@@ -22,7 +22,14 @@ export class ExcelUserExportService {
 
             if (!users.length) return null;
 
-            const worksheet = XLSX.utils.json_to_sheet(users, { header: ["name", "email"] });
+            const rows = users.map((user) => ({
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                description: user.description,
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(rows, { header: ["name", "email", "phone", "description"] });
 
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Users");

@@ -47,6 +47,20 @@ export const UserCard: React.FC<UserCardProps> = ({ user, onEdit, onDelete }) =>
                     </div>
                 )}
 
+                {user.phone && (
+                    <div className="bg-gray-50 p-2 rounded border border-gray-200">
+                        <p className="text-xs text-gray-600 font-medium mb-1">Телефон:</p>
+                        <p className="font-mono text-xs break-all">{user.phone}</p>
+                    </div>
+                )}
+
+                {user.description && (
+                    <div className="bg-gray-50 p-2 rounded border border-gray-200">
+                        <p className="text-xs text-gray-600 font-medium mb-1">Описание:</p>
+                        <p className="text-xs whitespace-pre-wrap break-words">{user.description}</p>
+                    </div>
+                )}
+
                 {user.tgId && (
                     <p className="flex items-center gap-2">
                         <span>📱</span>

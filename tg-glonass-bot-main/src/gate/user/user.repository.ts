@@ -16,6 +16,11 @@ export class UserRepository {
         return normalizedEmail || null;
     }
 
+    private normalizeOptionalString(value?: string | null): string | null {
+        const normalizedValue = value?.trim();
+        return normalizedValue || null;
+    }
+
     private getRecipientKey(email?: string | null, typeEmail?: UserTypeEmail | null): string | null {
         const normalizedEmail = this.normalizeEmail(email);
         return normalizedEmail && typeEmail ? `${normalizedEmail}:${typeEmail}` : null;
@@ -50,6 +55,8 @@ export class UserRepository {
         const userEntity = this.userRepository.create({
             name: userData.name,
             email: normalizedEmail,
+            phone: this.normalizeOptionalString(userData.phone),
+            description: this.normalizeOptionalString(userData.description),
             tgId: userData.tgId ?? null,
             vkId: userData.vkId ?? null,
             typeEmail: userData.typeEmail,
@@ -146,6 +153,8 @@ export class UserRepository {
             const userEntities = usersToCreate.map(u => repository.create({
                 name: u.name,
                 email: this.normalizeEmail(u.email),
+                phone: this.normalizeOptionalString(u.phone),
+                description: this.normalizeOptionalString(u.description),
                 tgId: u.tgId ?? null,
                 vkId: u.vkId ?? null,
                 typeEmail: u.typeEmail,
@@ -177,12 +186,20 @@ export class UserRepository {
         const typeEmail = userData.typeEmail === undefined
             ? existingUser.typeEmail
             : userData.typeEmail;
+        const phone = userData.phone === undefined
+            ? existingUser.phone
+            : this.normalizeOptionalString(userData.phone);
+        const description = userData.description === undefined
+            ? existingUser.description
+            : this.normalizeOptionalString(userData.description);
 
         await this.assertRecipientIsUnique(normalizedEmail, typeEmail, id);
 
         this.userRepository.merge(existingUser, {
             name: userData.name,
             email: normalizedEmail,
+            phone,
+            description,
             tgId: userData.tgId,
             vkId: userData.vkId,
             typeEmail,
@@ -259,6 +276,8 @@ export class UserRepository {
                 name: name ?? `VK User ${vkId}`,
                 role: UserRole.CLIENT,
                 email: null,
+                phone: null,
+                description: null,
                 tgId: null,
             });
         } else {

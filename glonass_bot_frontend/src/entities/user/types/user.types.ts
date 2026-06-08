@@ -4,6 +4,8 @@ export interface UserDTO {
     id: string;
     name: string;
     email?: string | null;
+    phone?: string | null;
+    description?: string | null;
     tgId?: string | null;
     vkId?: number | null;
     role: UserRole;
@@ -15,6 +17,8 @@ export interface UserDTO {
 export interface UserCreateDTO {
     name: string;
     email?: string | null;
+    phone?: string | null;
+    description?: string | null;
     tgId?: string | null;
     vkId?: number | null;
     role: UserRole;

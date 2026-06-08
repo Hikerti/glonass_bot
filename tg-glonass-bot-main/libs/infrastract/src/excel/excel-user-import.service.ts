@@ -64,9 +64,39 @@ export class ExcelUserImportService {
           'e-mail',
         ]);
 
+        const phone = this.getStringValue(row, [
+          'phone',
+          'Phone',
+          'PHONE',
+          'tel',
+          'Tel',
+          'telephone',
+          'Telephone',
+          'Телефон',
+          'телефон',
+          'Номер телефона',
+          'номер телефона',
+        ]);
+
+        const description = this.getStringValue(row, [
+          'description',
+          'Description',
+          'DESCRIPTION',
+          'comment',
+          'Comment',
+          'note',
+          'Note',
+          'Описание',
+          'описание',
+          'Комментарий',
+          'комментарий',
+        ]);
+
         return {
           name,
           email,
+          phone: phone || null,
+          description: description || null,
           typeEmail,
           role: 'client',
         };

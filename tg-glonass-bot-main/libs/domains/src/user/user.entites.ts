@@ -26,6 +26,18 @@ export class User {
     })
     email: string | null;
 
+    @Column({
+        nullable: true,
+        type: 'varchar'
+    })
+    phone: string | null;
+
+    @Column({
+        nullable: true,
+        type: 'text'
+    })
+    description: string | null;
+
     @Column({ name: 'tg_id', nullable: true, type: 'varchar' })
     tgId: string | null;
 

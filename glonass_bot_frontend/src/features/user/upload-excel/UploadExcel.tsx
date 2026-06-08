@@ -132,8 +132,8 @@ export const UploadExcel: React.FC<UploadExcelProps> = ({ onSuccess }) => {
             </div>
 
             <p className="text-xs text-gray-500">
-                Excel должен содержать колонки: <b>name</b> и <b>email</b>.
-                Также поддерживаются: <b>Имя</b>, <b>ФИО</b>, <b>Почта</b>, <b>Email</b>.
+                Excel должен содержать обязательные колонки: <b>name</b> и <b>email</b>.
+                Необязательные колонки: <b>phone</b>, <b>description</b>. Также поддерживаются: <b>Имя</b>, <b>ФИО</b>, <b>Почта</b>, <b>Email</b>, <b>Телефон</b>, <b>Описание</b>.
             </p>
 
             {error && <p className="text-sm text-red-600">{error}</p>}

@@ -16,6 +16,8 @@ const getInitialFormData = (user?: UserDTO | null): UserCreateDTO => {
         return {
             name: user.name,
             email: user.email || null,
+            phone: user.phone || null,
+            description: user.description || null,
             tgId: user.tgId || null,
             vkId: user.vkId || null,
             role: user.role,
@@ -26,6 +28,8 @@ const getInitialFormData = (user?: UserDTO | null): UserCreateDTO => {
     return {
         name: '',
         email: null,
+        phone: null,
+        description: null,
         tgId: null,
         vkId: null,
         role: UserRole.CLIENT,
@@ -68,7 +72,28 @@ export const UserForm: React.FC<UserFormProps> = ({ user, onSubmit, onCancel }) 
                 value={formData.email || ''}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value || null })}
                 placeholder="example@mail.ru"
+                required
             />
+
+            <Input
+                label="Телефон"
+                type="tel"
+                value={formData.phone || ''}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value || null })}
+                placeholder="+7 999 123-45-67"
+            />
+
+            <div className="w-full">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Описание
+                </label>
+                <textarea
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[90px] resize-y"
+                    value={formData.description || ''}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value || null })}
+                    placeholder="Комментарий, примечание или описание получателя"
+                />
+            </div>
 
             <Input
                 label="Telegram ID"
