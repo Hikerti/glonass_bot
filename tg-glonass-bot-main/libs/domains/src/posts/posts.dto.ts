@@ -1,4 +1,4 @@
-import {IsArray, IsBoolean, IsOptional, IsString} from 'class-validator';
+﻿import {IsArray, IsBoolean, IsOptional, IsString} from 'class-validator';
 import { OmitType, PartialType } from '@nestjs/mapped-types';
 import {Post, PostType} from "./posts.entites";
 
@@ -26,6 +26,11 @@ export class PostDTO {
     @IsArray()
     @IsString({ each: true })
     media: string[];
+
+    @IsArray()
+    @IsString({ each: true })
+    @IsOptional()
+    attachments?: string[];
 
     @IsArray()
     @IsString({ each: true })
@@ -59,7 +64,8 @@ export class PostDTO {
             interval: model.interval,
             date: model.date,
             startDate: model.startDate,
-            media: model.media,
+            media: model.media || [],
+            attachments: model.attachments || [],
             targetUserIds: model.targetUserIds || [],
             active: model.active,
             postToWall: model.postToWall,

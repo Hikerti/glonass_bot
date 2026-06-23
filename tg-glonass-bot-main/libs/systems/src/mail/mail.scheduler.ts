@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import { ConfigService } from '@nestjs/config';
@@ -50,15 +50,16 @@ export class MailScheduler extends AbstractPostScheduler {
       users,
       text: post.text,
       media: post.media || [],
+      attachments: post.attachments || [],
       date: post.date,
       startDate: post.startDate,
       type: post.type,
       targetUserIds: post.targetUserIds || [],
-      subject: 'Важное уведомление',
+      subject: 'Р’Р°Р¶РЅРѕРµ СѓРІРµРґРѕРјР»РµРЅРёРµ',
     };
   }
 
-  // Метод удаления, который мы добавляем для фикса проблемы с очередью
+  // РњРµС‚РѕРґ СѓРґР°Р»РµРЅРёСЏ, РєРѕС‚РѕСЂС‹Р№ РјС‹ РґРѕР±Р°РІР»СЏРµРј РґР»СЏ С„РёРєСЃР° РїСЂРѕР±Р»РµРјС‹ СЃ РѕС‡РµСЂРµРґСЊСЋ
   private async removeFromPrimaryQueue(postId: string) {
     const repeatableJobs = await this.queue.getRepeatableJobs();
     const job = repeatableJobs.find((j) => j.id === postId);
@@ -120,14 +121,14 @@ export class MailScheduler extends AbstractPostScheduler {
     if (job) {
       await this.queue.removeRepeatableByKey(job.key);
       this.logger.log(
-        `[Queue] 🗑️ Задача для поста ${postId} удалена из повторов`,
+        `[Queue] рџ—‘пёЏ Р—Р°РґР°С‡Р° РґР»СЏ РїРѕСЃС‚Р° ${postId} СѓРґР°Р»РµРЅР° РёР· РїРѕРІС‚РѕСЂРѕРІ`,
       );
     }
 
     const normalJob = await this.queue.getJob(postId);
     if (normalJob && !(await normalJob.isActive())) {
       await normalJob.remove();
-      this.logger.log(`[Queue] 🗑️ Обычная задача для поста ${postId} удалена`);
+      this.logger.log(`[Queue] рџ—‘пёЏ РћР±С‹С‡РЅР°СЏ Р·Р°РґР°С‡Р° РґР»СЏ РїРѕСЃС‚Р° ${postId} СѓРґР°Р»РµРЅР°`);
     }
 
     const immediateJob = await this.queue.getJob(
@@ -136,7 +137,7 @@ export class MailScheduler extends AbstractPostScheduler {
     if (immediateJob && !(await immediateJob.isActive())) {
       await immediateJob.remove();
       this.logger.log(
-        `[Queue] 🗑️ Немедленная задача для поста ${postId} удалена`,
+        `[Queue] рџ—‘пёЏ РќРµРјРµРґР»РµРЅРЅР°СЏ Р·Р°РґР°С‡Р° РґР»СЏ РїРѕСЃС‚Р° ${postId} СѓРґР°Р»РµРЅР°`,
       );
     }
   }
@@ -160,7 +161,7 @@ export class MailScheduler extends AbstractPostScheduler {
     ];
     const queuedPostIds = currentRepeatableJobs
       .map((j) => j.id)
-      .filter((id): id is string => !!id); // Убираем undefined для TS
+      .filter((id): id is string => !!id); // РЈР±РёСЂР°РµРј undefined РґР»СЏ TS
 
     const allActiveIds = new Set<string>();
     let allMailTypesLoaded = true;
@@ -180,7 +181,7 @@ export class MailScheduler extends AbstractPostScheduler {
         }
       } catch (e) {
         allMailTypesLoaded = false;
-        this.logger.error(`[Cron] Ошибка типа ${type}: ${e.message}`);
+        this.logger.error(`[Cron] РћС€РёР±РєР° С‚РёРїР° ${type}: ${e.message}`);
       }
     }
 

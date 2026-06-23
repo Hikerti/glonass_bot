@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+﻿import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PostDTO, UserDTO, UserRole, User, PostType } from '@domains';
 import { parseInterval } from '@shared';
@@ -10,6 +10,7 @@ export interface ChannelJobData {
     users: UserDTO[];
     text: string;
     media: string[];
+    attachments?: string[];
     date: string;
     startDate?: string | null;
     type: PostType;
@@ -174,7 +175,7 @@ export abstract class AbstractPostScheduler implements OnModuleInit {
         });
 
         this.logger.log(
-          `[Schedule] 🚀 Пост ${post.id} добавлен в очередь ${this.queue.name} для немедленной отправки`,
+          `[Schedule] рџљЂ РџРѕСЃС‚ ${post.id} РґРѕР±Р°РІР»РµРЅ РІ РѕС‡РµСЂРµРґСЊ ${this.queue.name} РґР»СЏ РЅРµРјРµРґР»РµРЅРЅРѕР№ РѕС‚РїСЂР°РІРєРё`,
         );
       }
 
@@ -191,7 +192,7 @@ export abstract class AbstractPostScheduler implements OnModuleInit {
         });
 
         this.logger.log(
-          `[Schedule] 🚀 Пост ${post.id} добавлен в очередь ${this.queue.name} для отправки в дату начала`,
+          `[Schedule] рџљЂ РџРѕСЃС‚ ${post.id} РґРѕР±Р°РІР»РµРЅ РІ РѕС‡РµСЂРµРґСЊ ${this.queue.name} РґР»СЏ РѕС‚РїСЂР°РІРєРё РІ РґР°С‚Сѓ РЅР°С‡Р°Р»Р°`,
         );
       }
 
@@ -211,7 +212,7 @@ export abstract class AbstractPostScheduler implements OnModuleInit {
 
       await queue.add(jobData, options);
       this.logger.log(
-        `[Schedule] ✅ Пост ${post.id} добавлен в очередь ${this.queue.name}`,
+        `[Schedule] вњ… РџРѕСЃС‚ ${post.id} РґРѕР±Р°РІР»РµРЅ РІ РѕС‡РµСЂРµРґСЊ ${this.queue.name}`,
       );
     } catch (e) {
       this.logger.error(`[Schedule] Error ${post.id}: ${e.message}`);

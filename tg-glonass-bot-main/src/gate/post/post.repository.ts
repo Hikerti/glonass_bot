@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+﻿import { Injectable, NotFoundException } from "@nestjs/common";
 import { Repository } from "typeorm";
 import {PostDTO, Post, PostType} from "@domains";
 import { PaginationType } from "@shared";
@@ -18,7 +18,8 @@ export class PostRepository {
             interval: postData.interval,
             date: postData.date,
             startDate: postData.startDate ?? null,
-            media: postData.media,
+            media: postData.media || [],
+            attachments: postData.attachments || [],
             targetUserIds: postData.targetUserIds || [],
             postToWall: postData.postToWall,
             postToMessage: postData.postToMessage,
@@ -49,6 +50,7 @@ export class PostRepository {
             date: postData.date,
             startDate: postData.startDate,
             media: postData.media,
+            attachments: postData.attachments,
             targetUserIds: postData.targetUserIds,
             active: postData.active,
             postToWall: postData.postToWall,

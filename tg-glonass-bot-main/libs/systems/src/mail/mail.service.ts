@@ -135,8 +135,49 @@ export class MailService extends AbstractNotificationService {
         };
     }
 
+    private async prepareDownloadAttachments(attachmentUrls: string[]) {
+        const attachments: MailAttachment[] = [];
+        const linkPreviewHtml: string[] = [];
+        const plainLinks: string[] = [];
+
+        for (const [index, url] of attachmentUrls.entries()) {
+            const filename = this.getMediaFilename(url, index);
+            const escapedFilename = this.escapeHtml(filename);
+            const escapedUrl = this.escapeHtml(url);
+
+            try {
+                const res = await axios.get(url, { responseType: 'arraybuffer' });
+                const contentType = this.getHeaderValue(res.headers['content-type']);
+
+                attachments.push({
+                    filename,
+                    content: Buffer.from(res.data),
+                    contentType,
+                    contentDisposition: 'attachment',
+                });
+
+                continue;
+            } catch (e) {
+                this.logger.warn(`[MailAttachment] Failed to load ${url}: ${e.message}`);
+            }
+
+            plainLinks.push(`${filename}: ${url}`);
+            linkPreviewHtml.push(`
+                <p style="margin: 8px 0;">
+                    <a href="${escapedUrl}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">&#1057;&#1082;&#1072;&#1095;&#1072;&#1090;&#1100; &#1092;&#1072;&#1081;&#1083;: ${escapedFilename}</a>
+                </p>
+            `);
+        }
+
+        return {
+            attachments,
+            html: linkPreviewHtml.join(''),
+            text: plainLinks.length ? `\n\nФайлы для скачивания:\n${plainLinks.join('\n')}` : '',
+        };
+    }
+
     public async send(data: ChannelJobData): Promise<void> {
-        const { users, text, media, subject, type } = data;
+        const { users, text, media, attachments, subject, type } = data;
         const transporter = this.transporters[type];
         const config = this.configs[type];
         const publicGateUrl = this.getPublicGateUrl();
@@ -147,6 +188,7 @@ export class MailService extends AbstractNotificationService {
         }
 
         const preparedMedia = await this.prepareMailMedia(media || []);
+        const preparedAttachments = await this.prepareDownloadAttachments(attachments || []);
         const htmlText = this.escapeHtml(text).replace(/\n/g, '<br>');
 
         for (const user of users) {
@@ -160,11 +202,12 @@ export class MailService extends AbstractNotificationService {
                     from: config.user,
                     to: user.email,
                     subject: subject || 'Уведомление',
-                    text: `${text}${preparedMedia.text}\n\nОтписаться: ${unsubscribeUrl}`,
+                    text: `${text}${preparedMedia.text}${preparedAttachments.text}\n\nОтписаться: ${unsubscribeUrl}`,
                     html: `
                         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
                             <div style="margin-bottom: 20px;">${htmlText}</div>
                             ${preparedMedia.html}
+                            ${preparedAttachments.html}
                             <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
                             <p style="font-size: 12px; color: #999; text-align: center;">
                                 Вы получили это письмо, так как подписаны на рассылку.
@@ -174,7 +217,7 @@ export class MailService extends AbstractNotificationService {
                         </div>
                     `,
                     headers: { 'List-Unsubscribe': `<${unsubscribeUrl}>` },
-                    attachments: preparedMedia.attachments
+                    attachments: [...preparedMedia.attachments, ...preparedAttachments.attachments]
                 });
                 await new Promise(res => setTimeout(res, 100));
             } catch (e) {

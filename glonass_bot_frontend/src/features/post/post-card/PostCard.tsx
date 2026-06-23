@@ -13,6 +13,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onEdit, onDelete }) =>
     const typeLabel = getPostTypeLabel(post.type);
     const typeIcon = getPostTypeIcon(post.type);
     const targetUsersCount = post.targetUserIds?.length || 0;
+    const attachmentsCount = post.attachments?.length || 0;
 
     return (
         <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
@@ -58,6 +59,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onEdit, onDelete }) =>
                 <p>🗓️ Начало рассылки: {post.startDate || 'сразу'}</p>
                 <p>📅 Окончание рассылки: {post.date}</p>
                 <p>⏱️ Интервал: {post.interval}</p>
+                {attachmentsCount > 0 && <p>Вложения для скачивания: {attachmentsCount}</p>}
                 {post.postToWall && <p className="text-blue-600">📌 Публикация на стене</p>}
                 {post.postToMessage && <p className="text-green-600">💬 Отправка в сообщениях</p>}
             </div>

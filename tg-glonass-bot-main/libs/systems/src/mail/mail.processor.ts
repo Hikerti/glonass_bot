@@ -1,4 +1,4 @@
-import { Processor, Process } from "@nestjs/bull";
+﻿import { Processor, Process } from "@nestjs/bull";
 import { Logger } from "@nestjs/common";
 import type { Job } from 'bull';
 import { MailService } from "./mail.service";
@@ -69,19 +69,19 @@ export class MailProcessor {
         const post = postResponse.data;
 
         if (!post?.active) {
-            this.logger.warn(`[Processor] Пост ${postId} не активен, пропускаю рассылку`);
+            this.logger.warn(`[Processor] РџРѕСЃС‚ ${postId} РЅРµ Р°РєС‚РёРІРµРЅ, РїСЂРѕРїСѓСЃРєР°СЋ СЂР°СЃСЃС‹Р»РєСѓ`);
             return null;
         }
 
         const expiryDate = this.parseExpiryDate(post.date);
         const startDate = this.parseStartDate(post.startDate);
         if (expiryDate === null || Date.now() > expiryDate) {
-            this.logger.warn(`[Processor] Пост ${postId} завершён или имеет некорректную дату, пропускаю рассылку`);
+            this.logger.warn(`[Processor] РџРѕСЃС‚ ${postId} Р·Р°РІРµСЂС€С‘РЅ РёР»Рё РёРјРµРµС‚ РЅРµРєРѕСЂСЂРµРєС‚РЅСѓСЋ РґР°С‚Сѓ, РїСЂРѕРїСѓСЃРєР°СЋ СЂР°СЃСЃС‹Р»РєСѓ`);
             return null;
         }
 
         if (Number.isNaN(startDate) || Date.now() < startDate) {
-            this.logger.warn(`[Processor] Пост ${postId} ещё не достиг даты начала, пропускаю рассылку`);
+            this.logger.warn(`[Processor] РџРѕСЃС‚ ${postId} РµС‰С‘ РЅРµ РґРѕСЃС‚РёРі РґР°С‚С‹ РЅР°С‡Р°Р»Р°, РїСЂРѕРїСѓСЃРєР°СЋ СЂР°СЃСЃС‹Р»РєСѓ`);
             return null;
         }
 
@@ -105,6 +105,7 @@ export class MailProcessor {
             users: filteredUsers,
             text: post.text,
             media: post.media || [],
+            attachments: post.attachments || [],
             date: post.date,
             startDate: post.startDate,
             type: post.type,
@@ -119,7 +120,7 @@ export class MailProcessor {
 
     protected async processJob(job: Job<ChannelJobData>) {
         const staleUsersCount = job.data.users?.length || 0;
-        this.logger.log(`[Processor] 📬 Взял в работу пост ${job.id} (в старой задаче юзеров: ${staleUsersCount})`);
+        this.logger.log(`[Processor] рџ“¬ Р’Р·СЏР» РІ СЂР°Р±РѕС‚Сѓ РїРѕСЃС‚ ${job.id} (РІ СЃС‚Р°СЂРѕР№ Р·Р°РґР°С‡Рµ СЋР·РµСЂРѕРІ: ${staleUsersCount})`);
 
         try {
             const freshData = await this.getFreshJobData(job);
@@ -128,11 +129,11 @@ export class MailProcessor {
                 return;
             }
 
-            this.logger.log(`[Processor] 📬 Актуальных юзеров для поста ${freshData.postId}: ${freshData.users.length}`);
+            this.logger.log(`[Processor] рџ“¬ РђРєС‚СѓР°Р»СЊРЅС‹С… СЋР·РµСЂРѕРІ РґР»СЏ РїРѕСЃС‚Р° ${freshData.postId}: ${freshData.users.length}`);
             await this.mailService.send(freshData);
-            this.logger.log(`[Processor] ✨ Рассылка ${job.id} завершена`);
+            this.logger.log(`[Processor] вњЁ Р Р°СЃСЃС‹Р»РєР° ${job.id} Р·Р°РІРµСЂС€РµРЅР°`);
         } catch (e) {
-            this.logger.error(`[Processor] Ошибка рассылки ${job.id}: ${e.message}`);
+            this.logger.error(`[Processor] РћС€РёР±РєР° СЂР°СЃСЃС‹Р»РєРё ${job.id}: ${e.message}`);
             throw e;
         }
     }
@@ -147,4 +148,8 @@ export class TargetedMailProcessor extends MailProcessor {
         super(mailService, config);
     }
 
+    @Process()
+    async handleTargetedMailJob(job: Job<ChannelJobData>) {
+        await this.processJob(job);
+    }
 }

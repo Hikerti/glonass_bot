@@ -1,16 +1,26 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { postApi } from '../../../entities/post/api/postApi';
 
 interface MediaUploadProps {
     onUpload: (url: string) => void;
     onRemove?: (url: string) => void;
     currentMedia?: string[];
+    label?: string;
+    description?: string;
+    buttonText?: string;
+    accept?: string;
+    inputId?: string;
 }
 
 export const MediaUpload: React.FC<MediaUploadProps> = ({
                                                             onUpload,
                                                             onRemove,
-                                                            currentMedia = []
+                                                            currentMedia = [],
+                                                            label = 'Медиа файлы',
+                                                            description = 'Поддерживаются изображения и видео. Можно выбрать несколько файлов',
+                                                            buttonText = '📎 Загрузить файлы',
+                                                            accept = 'image/*,video/*',
+                                                            inputId = 'media-upload',
                                                         }) => {
     const [uploading, setUploading] = useState(false);
 
@@ -45,19 +55,19 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
         <div className="space-y-4">
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Медиа файлы
+                    {label}
                 </label>
                 <input
                     type="file"
                     multiple
-                    accept="image/*,video/*"
+                    accept={accept}
                     onChange={handleFileSelect}
                     disabled={uploading}
                     className="hidden"
-                    id="media-upload"
+                    id={inputId}
                 />
                 <label
-                    htmlFor="media-upload"
+                    htmlFor={inputId}
                     className={`inline-flex items-center gap-2 px-4 py-2 text-base font-medium rounded-lg transition-colors duration-200 cursor-pointer ${
                         uploading
                             ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
@@ -86,12 +96,12 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
                         </>
                     ) : (
                         <>
-                            📎 Загрузить файлы
+                            {buttonText}
                         </>
                     )}
                 </label>
                 <p className="mt-1 text-xs text-gray-500">
-                    Поддерживаются изображения и видео. Можно выбрать несколько файлов
+                    {description}
                 </p>
             </div>
 

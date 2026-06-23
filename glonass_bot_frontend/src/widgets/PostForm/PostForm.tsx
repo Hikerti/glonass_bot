@@ -50,6 +50,7 @@ const getInitialFormData = (post?: PostDTO | null): PostCreateDTO => {
             startDate: post.startDate ? toDateInputValue(post.startDate) : getLocalDateInputValue(),
             date: toDateInputValue(post.date),
             media: post.media || [],
+            attachments: post.attachments || [],
             targetUserIds: post.targetUserIds || [],
             active: post.active,
             postToWall: post.postToWall,
@@ -64,6 +65,7 @@ const getInitialFormData = (post?: PostDTO | null): PostCreateDTO => {
         startDate: getLocalDateInputValue(),
         date: getLocalDateInputValue(),
         media: [],
+        attachments: [],
         targetUserIds: [],
         active: true,
         postToWall: false,
@@ -172,6 +174,20 @@ export const PostForm: React.FC<PostFormProps> = ({ post, onSubmit, onCancel }) 
         setFormData(prev => ({
             ...prev,
             media: prev.media.filter(m => m !== url),
+        }));
+    };
+
+    const handleAttachmentUpload = (url: string) => {
+        setFormData(prev => ({
+            ...prev,
+            attachments: [...(prev.attachments || []), url],
+        }));
+    };
+
+    const handleAttachmentRemove = (url: string) => {
+        setFormData(prev => ({
+            ...prev,
+            attachments: (prev.attachments || []).filter(m => m !== url),
         }));
     };
 
@@ -408,10 +424,28 @@ export const PostForm: React.FC<PostFormProps> = ({ post, onSubmit, onCancel }) 
             </p>
 
             <MediaUpload
+                label="Файлы для превью в письме"
+                description="Изображения будут отображаться прямо в письме. Видео и прочие файлы из этого блока будут показаны ссылкой."
+                buttonText="🖼️ Загрузить превью"
+                inputId="media-preview-upload"
+                accept="image/*,video/*"
                 onUpload={handleMediaUpload}
                 onRemove={handleMediaRemove}
                 currentMedia={formData.media}
             />
+
+            {isMailPost && (
+                <MediaUpload
+                    label="Файлы для скачивания в письме"
+                    description="Эти файлы будут добавлены к письму как вложения для скачивания."
+                    buttonText="📎 Загрузить вложения"
+                    inputId="mail-attachment-upload"
+                    accept=""
+                    onUpload={handleAttachmentUpload}
+                    onRemove={handleAttachmentRemove}
+                    currentMedia={formData.attachments || []}
+                />
+            )}
 
             <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
                 <p className="text-sm font-medium text-gray-700 mb-2">Настройки публикации:</p>

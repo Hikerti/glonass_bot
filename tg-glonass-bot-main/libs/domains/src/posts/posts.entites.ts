@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+﻿import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
 
 export enum PostType {
     TG = 'tg',
@@ -37,6 +37,9 @@ export class Post {
 
     @Column('text', { array: true, default: [] })
     media: string[];
+
+    @Column('text', { array: true, default: [] })
+    attachments: string[];
 
     @Column('uuid', { name: 'target_user_ids', array: true, default: [] })
     targetUserIds: string[];

@@ -1,4 +1,4 @@
-import { PostType } from '@shared/types/common.types.ts';
+﻿import { PostType } from '@shared/types/common.types.ts';
 
 export interface PostDTO {
     id: string;
@@ -10,6 +10,7 @@ export interface PostDTO {
     /** End date of the mailing schedule. */
     date: string;
     media: string[];
+    attachments?: string[];
     targetUserIds?: string[];
     active: boolean;
     postToWall?: boolean;
@@ -26,6 +27,7 @@ export interface PostCreateDTO {
     /** End date of the mailing schedule. */
     date: string;
     media: string[];
+    attachments?: string[];
     targetUserIds?: string[];
     active: boolean;
     postToWall?: boolean;
