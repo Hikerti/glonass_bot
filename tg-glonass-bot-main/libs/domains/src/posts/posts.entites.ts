@@ -7,6 +7,7 @@ export enum PostType {
     MAIL = 'mail',
     MAIL2 = 'mail2',
     MAIL3 = 'mail3',
+    MAIL4 = 'mail4',
     VK = 'vk',
     VK2 = 'vk2'
 }

@@ -241,6 +241,7 @@ export class AdminPostsWizardService extends AdminGetMedia {
     async selectMailGroup(@Ctx() ctx: PostCreationContext) {
         await ctx.editMessageText("Выберите почту:", Markup.inlineKeyboard([
             [Markup.button.callback("ostrovbot@ostrov59.ru", "set_type_mail"), Markup.button.callback("kz@ostrov59.ru", "set_type_mail2"), Markup.button.callback("avtolyx18@yandex.ru", "set_type_mail3")],
+            [Markup.button.callback("aposstolistina@yandex.ru", "set_type_mail4")],
             [Markup.button.callback("⬅️ Назад", "back_to_main_channels")]
         ]));
     }

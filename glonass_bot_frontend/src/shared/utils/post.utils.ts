@@ -14,6 +14,7 @@ export const getPostTypeIcon = (type: PostType): string => {
         [PostType.MAIL]: '@',
         [PostType.MAIL2]: '@',
         [PostType.MAIL3]: '@',
+        [PostType.MAIL4]: '@',
     };
     return icons[type] || '#';
 };

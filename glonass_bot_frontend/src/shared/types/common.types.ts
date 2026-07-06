@@ -15,6 +15,7 @@ export enum UserTypeEmail {
     MAIL = 'mail',
     MAIL2 = 'mail2',
     MAIL3 = 'mail3',
+    MAIL4 = 'mail4',
 }
 
 export enum PostType {
@@ -24,6 +25,7 @@ export enum PostType {
     MAIL = 'mail',
     MAIL2 = 'mail2',
     MAIL3 = 'mail3',
+    MAIL4 = 'mail4',
     VK = 'vk',
     VK2 = 'vk2',
 }
@@ -32,6 +34,7 @@ export const EMAIL_TYPE_MAPPING: Record<UserTypeEmail, string> = {
     [UserTypeEmail.MAIL]: 'ostrovbot@ostrov59.ru',
     [UserTypeEmail.MAIL2]: 'kz@ostrov59.ru',
     [UserTypeEmail.MAIL3]: 'avtolyx18@yandex.ru',
+    [UserTypeEmail.MAIL4]: 'aposstolistina@yandex.ru',
 };
 
 export const POST_TYPE_MAPPING: Record<PostType, string> = {
@@ -43,6 +46,7 @@ export const POST_TYPE_MAPPING: Record<PostType, string> = {
     [PostType.MAIL]: 'ostrovbot@ostrov59.ru',
     [PostType.MAIL2]: 'kz@ostrov59.ru',
     [PostType.MAIL3]: 'avtolyx18@yandex.ru',
+    [PostType.MAIL4]: 'aposstolistina@yandex.ru',
 };
 
 export const DISABLED_POST_TYPES: PostType[] = [

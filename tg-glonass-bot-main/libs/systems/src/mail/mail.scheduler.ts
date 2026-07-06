@@ -153,7 +153,7 @@ export class MailScheduler extends AbstractPostScheduler {
       !isDocker && configuredGateUrl.includes('://gate')
         ? `http://localhost:${localPort}`
         : configuredGateUrl;
-    const types = [PostType.MAIL, PostType.MAIL2, PostType.MAIL3];
+    const types = [PostType.MAIL, PostType.MAIL2, PostType.MAIL3, PostType.MAIL4];
 
     const currentRepeatableJobs = [
       ...(await this.queue.getRepeatableJobs()),

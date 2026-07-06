@@ -46,6 +46,7 @@ export class ImportUsersWizard {
                     [Markup.button.callback('ostrovbot@ostrov59.ru', 'import_mail_1')],
                     [Markup.button.callback('kz@ostrov59.ru', 'import_mail_2')],
                     [Markup.button.callback('avtolyx18@yandex.ru', 'import_mail_3')],
+                    [Markup.button.callback('aposstolistina@yandex.ru', 'import_mail_4')],
                     [Markup.button.callback('❌ Отмена', 'cancel_import')]
                 ])
             );
@@ -63,6 +64,7 @@ export class ImportUsersWizard {
             'import_mail_1': UserTypeEmail['MAIL'],
             'import_mail_2': UserTypeEmail['MAIL2'],
             'import_mail_3': UserTypeEmail['MAIL3'],
+            'import_mail_4': UserTypeEmail['MAIL4'],
         };
 
         const selectedType = mailTypeMap[ctx.callbackQuery.data];

@@ -9,6 +9,7 @@ export enum UserTypeEmail {
   MAIL = 'mail',
   MAIL2 = 'mail2',
   MAIL3 = 'mail3',
+  MAIL4 = 'mail4',
 }
 
 @Entity({ name: 'user' })

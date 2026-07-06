@@ -111,6 +111,7 @@ export class AdminUsersWizardService {
                 [Markup.button.callback('ostrovbot@ostrov59.ru', 'mail')],
                 [Markup.button.callback('kz@ostrov59.ru', 'mail2')],
                 [Markup.button.callback('avtolyx18@yandex.ru', 'mail3')],
+                [Markup.button.callback('aposstolistina@yandex.ru', 'mail4')],
             ])
         );
 
@@ -127,6 +128,8 @@ export class AdminUsersWizardService {
             this.state.typeEmail = UserTypeEmail['MAIL2'];
         } else if (this.callbackQuery?.data === 'mail3') {
             this.state.typeEmail = UserTypeEmail['MAIL3'];
+        } else if (this.callbackQuery?.data === 'mail4') {
+            this.state.typeEmail = UserTypeEmail['MAIL4'];
         } else {
             this.state.typeEmail = null;
         }

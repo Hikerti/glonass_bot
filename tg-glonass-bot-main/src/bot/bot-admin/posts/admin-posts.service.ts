@@ -127,6 +127,12 @@ export class AdminPostsService {
         await this.sendPosts(ctx, this.page, PostType.MAIL3);
     }
 
+     @Command('get_posts_list4')
+    async getPostsList4(@Ctx() ctx: Context) {
+        this.page = 1;
+        await this.sendPosts(ctx, this.page, PostType.MAIL4);
+    }
+
     @Command('get_posts_tg')
     async getPostListTg(@Ctx() ctx: Context) {
         this.page = 1;

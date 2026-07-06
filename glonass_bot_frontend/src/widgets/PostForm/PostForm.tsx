@@ -35,10 +35,10 @@ const toDateInputValue = (date: string) => {
     return date;
 };
 
-const MAIL_POST_TYPES = [PostType.MAIL, PostType.MAIL2, PostType.MAIL3];
+const MAIL_POST_TYPES = [PostType.MAIL, PostType.MAIL2, PostType.MAIL3, PostType.MAIL4] as const;
 
-const isMailPostType = (type: PostType): type is PostType.MAIL | PostType.MAIL2 | PostType.MAIL3 => {
-    return MAIL_POST_TYPES.includes(type);
+const isMailPostType = (type: PostType): type is (typeof MAIL_POST_TYPES)[number] => {
+    return MAIL_POST_TYPES.includes(type as (typeof MAIL_POST_TYPES)[number]);
 };
 
 const getInitialFormData = (post?: PostDTO | null): PostCreateDTO => {

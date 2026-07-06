@@ -17,6 +17,7 @@ export class AdminGeneralUpdateService implements OnModuleInit {
             { command: 'get_posts_list', description: 'Получение списка постов для рассылки на ostrovbot@ostrov59.ru' },
             { command: 'get_posts_list2', description: 'Получение списка постов для рассылки на kz@ostrov59.ru' },
             { command: 'get_posts_list3', description: 'Получение списка постов для рассылки на avtolyx18@yandex.ru' },
+            { command: 'get_posts_list4', description: 'Получение списка постов для рассылки на aposstolistina@yandex.ru' },
             { command: 'get_posts_tg', description: 'Получение списка постов для рассылки в телеграмм бота' },
             { command: 'get_posts_tg2', description: 'Получение списка постов для рассылки в телеграмм группу 1' },
             { command: 'get_posts_tg3', description: 'Получение списка постов для рассылки в телеграмм группу 2' },
