@@ -25,13 +25,13 @@ export class S3Service implements OnModuleInit {
 
     constructor(private readonly config: ConfigService) {
         const isDocker = this.config.get<string>('RUNNING_IN_DOCKER') === 'true';
-        const normalizeEndpoint = (endpoint: string) => {
-            if (isDocker) return endpoint;
-            return endpoint.replace('://minio:', '://localhost:');
-        };
+        this.bucket = this.config.getOrThrow('S3_BUCKET');
 
-        const internalEndpoint = normalizeEndpoint(this.config.get('S3_INTERNAL_ENDPOINT') || this.config.get('S3_URL') || 'http://minio:3456');
-        this.publicEndpoint = normalizeEndpoint(this.config.get('S3_PUBLIC_ENDPOINT') || this.config.get('S3_ENDPOINT') || internalEndpoint);
+        const internalEndpoint = this.normalizeEndpoint(
+            this.config.get('S3_INTERNAL_ENDPOINT') || this.config.get('S3_URL') || 'http://minio:3456',
+            isDocker,
+        );
+        this.publicEndpoint = this.resolvePublicEndpoint(internalEndpoint, isDocker);
         
         const usePathStyle = internalEndpoint.includes('localhost') || internalEndpoint.includes('minio');
         
@@ -45,9 +45,42 @@ export class S3Service implements OnModuleInit {
             forcePathStyle: usePathStyle,
         });
 
-        this.bucket = this.config.getOrThrow('S3_BUCKET');
-        
         this.logger.log(`S3 configured: internal=${internalEndpoint}, public=${this.publicEndpoint}, bucket=${this.bucket}`);
+    }
+
+    private normalizeEndpoint(endpoint: string, isDocker: boolean): string {
+        if (isDocker) return endpoint;
+        return endpoint.replace('://minio:', '://localhost:');
+    }
+
+    private trimTrailingSlash(value: string): string {
+        return value.endsWith('/') ? value.slice(0, -1) : value;
+    }
+
+    private isDockerOnlyEndpoint(endpoint: string): boolean {
+        try {
+            return ['minio', '0.0.0.0'].includes(new URL(endpoint).hostname);
+        } catch {
+            return endpoint.includes('://minio:') || endpoint.includes('://0.0.0.0:');
+        }
+    }
+
+    private resolvePublicEndpoint(internalEndpoint: string, isDocker: boolean): string {
+        const configuredEndpoint = this.config.get<string>('S3_PUBLIC_ENDPOINT') || this.config.get<string>('S3_ENDPOINT');
+        const normalizedConfiguredEndpoint = configuredEndpoint
+            ? this.normalizeEndpoint(configuredEndpoint, isDocker)
+            : undefined;
+        const publicBaseUrl = this.config.get<string>('PUBLIC_BASE_URL');
+
+        if (
+            isDocker &&
+            publicBaseUrl &&
+            (!normalizedConfiguredEndpoint || this.isDockerOnlyEndpoint(normalizedConfiguredEndpoint))
+        ) {
+            return `${this.trimTrailingSlash(publicBaseUrl)}/${this.bucket}`;
+        }
+
+        return normalizedConfiguredEndpoint || internalEndpoint;
     }
 
     async onModuleInit() {
@@ -73,9 +106,7 @@ export class S3Service implements OnModuleInit {
             }),
         );
 
-        const cleanPublicEndpoint = this.publicEndpoint.endsWith('/')
-            ? this.publicEndpoint.slice(0, -1)
-            : this.publicEndpoint;
+        const cleanPublicEndpoint = this.trimTrailingSlash(this.publicEndpoint);
 
         const publicUrl = `${cleanPublicEndpoint}/${fileName}`;
 
@@ -141,9 +172,7 @@ export class S3Service implements OnModuleInit {
     }
 
     async getFileUrl(key: string): Promise<string> {
-        const cleanPublicEndpoint = this.publicEndpoint.endsWith('/')
-            ? this.publicEndpoint.slice(0, -1)
-            : this.publicEndpoint;
+        const cleanPublicEndpoint = this.trimTrailingSlash(this.publicEndpoint);
 
         return `${cleanPublicEndpoint}/${key}`;
     }

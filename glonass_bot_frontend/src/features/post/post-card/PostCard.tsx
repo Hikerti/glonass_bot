@@ -2,6 +2,7 @@ import React from 'react';
 import { PostDTO } from '../../../entities/post/types/post.types';
 import { Button } from '../../../shared/ui/Button/Button';
 import { getPostTypeLabel, getPostTypeIcon } from '../../../shared/utils/post.utils';
+import { getMediaPreviewUrl, isImageMediaUrl } from '../../../shared/utils/media.utils';
 
 interface PostCardProps {
     post: PostDTO;
@@ -37,10 +38,10 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onEdit, onDelete }) =>
                 <div className="mb-3 flex gap-2 overflow-x-auto pb-2">
                     {post.media.slice(0, 4).map((url, index) => (
                         <div key={index} className="flex-shrink-0 w-20 h-20 bg-gray-100 rounded overflow-hidden border border-gray-200">
-                            {url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                                <img src={url} alt="" className="w-full h-full object-cover" />
+                            {isImageMediaUrl(url) ? (
+                                <img src={getMediaPreviewUrl(url)} alt="" className="w-full h-full object-cover" />
                             ) : (
-                                <video src={url} className="w-full h-full object-cover" />
+                                <video src={getMediaPreviewUrl(url)} className="w-full h-full object-cover" />
                             )}
                         </div>
                     ))}
