@@ -1,5 +1,6 @@
 ﻿import React, { useState } from 'react';
 import { postApi } from '../../../entities/post/api/postApi';
+import { getMediaPreviewUrl, isImageMediaUrl, isVideoMediaUrl } from '../../../shared/utils/media.utils';
 
 interface MediaUploadProps {
     onUpload: (url: string) => void;
@@ -110,10 +111,10 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
                     {currentMedia.map((url, index) => (
                         <div key={index} className="relative group">
                             <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-                                {url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                                    <img src={url} alt="" className="w-full h-full object-cover" />
-                                ) : url.match(/\.(mp4|webm|ogg)$/i) ? (
-                                    <video src={url} className="w-full h-full object-cover" controls />
+                                {isImageMediaUrl(url) ? (
+                                    <img src={getMediaPreviewUrl(url)} alt="" className="w-full h-full object-cover" />
+                                ) : isVideoMediaUrl(url) ? (
+                                    <video src={getMediaPreviewUrl(url)} className="w-full h-full object-cover" controls />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-gray-400">
                                         <span className="text-xs text-center px-2">📄 {url.split('/').pop()?.slice(0, 20)}...</span>
