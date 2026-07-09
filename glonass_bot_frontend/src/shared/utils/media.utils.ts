@@ -13,6 +13,15 @@ const isLocalBrowser = () => {
     return Boolean(currentLocation && LOCAL_HOSTS.has(currentLocation.hostname));
 };
 
+const isLocalDevBrowser = () => {
+    const currentLocation = getCurrentLocation();
+    return Boolean(currentLocation && LOCAL_HOSTS.has(currentLocation.hostname) && !['', '80', '443'].includes(currentLocation.port));
+};
+
+const getSameOriginStorageUrl = (url: URL) => {
+    return `${url.pathname}${url.search}${url.hash}`;
+};
+
 export const getMediaPreviewUrl = (url: string): string => {
     try {
         const currentLocation = getCurrentLocation();
@@ -20,23 +29,27 @@ export const getMediaPreviewUrl = (url: string): string => {
         const isStoragePath = mediaUrl.pathname.startsWith('/local/');
 
         if (DOCKER_ONLY_HOSTS.has(mediaUrl.hostname)) {
-            if (isLocalBrowser()) {
+            if (isLocalDevBrowser()) {
                 mediaUrl.hostname = 'localhost';
                 return mediaUrl.toString();
             }
 
-            return isStoragePath ? `${mediaUrl.pathname}${mediaUrl.search}${mediaUrl.hash}` : url;
+            return isStoragePath ? getSameOriginStorageUrl(mediaUrl) : url;
         }
 
         if (!currentLocation) {
             return url;
         }
 
-        const isPrivateLocalUrl = LOCAL_HOSTS.has(mediaUrl.hostname) && !isLocalBrowser();
+        if (isStoragePath && !isLocalBrowser()) {
+            return getSameOriginStorageUrl(mediaUrl);
+        }
+
+        const isPrivateLocalUrl = LOCAL_HOSTS.has(mediaUrl.hostname) && !isLocalDevBrowser();
         const isMixedContentStorageUrl = currentLocation.protocol === 'https:' && mediaUrl.protocol === 'http:' && isStoragePath;
 
         if (isStoragePath && (isPrivateLocalUrl || isMixedContentStorageUrl)) {
-            return `${mediaUrl.pathname}${mediaUrl.search}${mediaUrl.hash}`;
+            return getSameOriginStorageUrl(mediaUrl);
         }
 
         return url;
