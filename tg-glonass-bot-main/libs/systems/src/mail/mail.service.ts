@@ -7,6 +7,8 @@ import axios from 'axios';
 import * as crypto from 'crypto';
 
 type MailAttachment = NonNullable<nodemailer.SendMailOptions['attachments']>[number];
+const DEFAULT_MAIL_SUBJECT = 'Важное уведомление';
+const BROKEN_DEFAULT_MAIL_SUBJECT = 'Р’Р°Р¶РЅРѕРµ СѓРІРµРґРѕРјР»РµРЅРёРµ';
 
 @Injectable()
 export class MailService extends AbstractNotificationService {
@@ -103,6 +105,16 @@ export class MailService extends AbstractNotificationService {
         } catch {
             return url;
         }
+    }
+
+    private normalizeSubject(subject?: string): string {
+        const normalized = subject?.trim() || DEFAULT_MAIL_SUBJECT;
+
+        if (normalized === BROKEN_DEFAULT_MAIL_SUBJECT) {
+            return DEFAULT_MAIL_SUBJECT;
+        }
+
+        return normalized;
     }
 
     private async prepareMailMedia(media: string[]) {
@@ -211,6 +223,7 @@ export class MailService extends AbstractNotificationService {
         const preparedMedia = await this.prepareMailMedia(media || []);
         const preparedAttachments = await this.prepareDownloadAttachments(attachments || []);
         const htmlText = this.escapeHtml(text).replace(/\n/g, '<br>');
+        const normalizedSubject = this.normalizeSubject(subject);
 
         for (const user of users) {
             if (!user.email) continue;
@@ -222,7 +235,7 @@ export class MailService extends AbstractNotificationService {
                 await transporter.sendMail({
                     from: config.user,
                     to: user.email,
-                    subject: subject || 'Уведомление',
+                    subject: normalizedSubject,
                     text: `${text}${preparedMedia.text}${preparedAttachments.text}\n\nОтписаться: ${unsubscribeUrl}`,
                     html: `
                         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
