@@ -135,6 +135,13 @@ class BaseMailProcessor {
 
 @Processor('mail')
 export class MailProcessor extends BaseMailProcessor {
+    constructor(
+        mailService: MailService,
+        config: ConfigService,
+    ) {
+        super(mailService, config);
+    }
+
     @Process()
     async handleMailJob(job: Job<ChannelJobData>) {
         await this.processJob(job);
@@ -143,6 +150,13 @@ export class MailProcessor extends BaseMailProcessor {
 
 @Processor('mail-targeted')
 export class TargetedMailProcessor extends BaseMailProcessor {
+    constructor(
+        mailService: MailService,
+        config: ConfigService,
+    ) {
+        super(mailService, config);
+    }
+
     @Process()
     async handleTargetedMailJob(job: Job<ChannelJobData>) {
         await this.processJob(job);
