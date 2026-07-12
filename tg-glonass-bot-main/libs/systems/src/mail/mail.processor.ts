@@ -7,9 +7,8 @@ import axios from "axios";
 import { PostDTO, UserRole } from "@domains";
 import { ChannelJobData } from "../forwarding-message";
 
-@Processor('mail')
-export class MailProcessor {
-    private readonly logger = new Logger(MailProcessor.name);
+class BaseMailProcessor {
+    private readonly logger = new Logger(this.constructor.name);
 
     constructor(
         private mailService: MailService,
@@ -113,11 +112,6 @@ export class MailProcessor {
         };
     }
 
-    @Process()
-    async handleMailJob(job: Job<ChannelJobData>) {
-        await this.processJob(job);
-    }
-
     protected async processJob(job: Job<ChannelJobData>) {
         const staleUsersCount = job.data.users?.length || 0;
         this.logger.log(`[Processor] рџ“¬ Р’Р·СЏР» РІ СЂР°Р±РѕС‚Сѓ РїРѕСЃС‚ ${job.id} (РІ СЃС‚Р°СЂРѕР№ Р·Р°РґР°С‡Рµ СЋР·РµСЂРѕРІ: ${staleUsersCount})`);
@@ -139,15 +133,16 @@ export class MailProcessor {
     }
 }
 
-@Processor('mail-targeted')
-export class TargetedMailProcessor extends MailProcessor {
-    constructor(
-        mailService: MailService,
-        config: ConfigService,
-    ) {
-        super(mailService, config);
+@Processor('mail')
+export class MailProcessor extends BaseMailProcessor {
+    @Process()
+    async handleMailJob(job: Job<ChannelJobData>) {
+        await this.processJob(job);
     }
+}
 
+@Processor('mail-targeted')
+export class TargetedMailProcessor extends BaseMailProcessor {
     @Process()
     async handleTargetedMailJob(job: Job<ChannelJobData>) {
         await this.processJob(job);
