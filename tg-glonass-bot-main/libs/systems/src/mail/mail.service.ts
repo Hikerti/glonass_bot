@@ -84,6 +84,26 @@ export class MailService extends AbstractNotificationService {
         return typeof value === 'string' ? value : undefined;
     }
 
+    private getStorageFetchUrl(url: string): string {
+        try {
+            const parsedUrl = new URL(url);
+            const bucket = this.config.get<string>('S3_BUCKET') || 'local';
+
+            if (!parsedUrl.pathname.startsWith(`/${bucket}/`)) {
+                return url;
+            }
+
+            const internalEndpoint = this.config.get<string>('S3_INTERNAL_ENDPOINT') || this.config.get<string>('S3_URL');
+            if (!internalEndpoint) {
+                return url;
+            }
+
+            return `${internalEndpoint.replace(/\/$/, '')}${parsedUrl.pathname}${parsedUrl.search}`;
+        } catch {
+            return url;
+        }
+    }
+
     private async prepareMailMedia(media: string[]) {
         const attachments: MailAttachment[] = [];
         const inlinePreviewHtml: string[] = [];
@@ -96,7 +116,7 @@ export class MailService extends AbstractNotificationService {
             const escapedUrl = this.escapeHtml(url);
 
             try {
-                const res = await axios.get(url, { responseType: 'arraybuffer' });
+                const res = await axios.get(this.getStorageFetchUrl(url), { responseType: 'arraybuffer' });
                 const contentType = this.getHeaderValue(res.headers['content-type']);
 
                 if (this.isInlineImage(url, contentType)) {
@@ -146,7 +166,7 @@ export class MailService extends AbstractNotificationService {
             const escapedUrl = this.escapeHtml(url);
 
             try {
-                const res = await axios.get(url, { responseType: 'arraybuffer' });
+                const res = await axios.get(this.getStorageFetchUrl(url), { responseType: 'arraybuffer' });
                 const contentType = this.getHeaderValue(res.headers['content-type']);
 
                 attachments.push({
