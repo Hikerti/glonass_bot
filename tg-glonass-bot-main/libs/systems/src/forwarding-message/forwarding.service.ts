@@ -11,6 +11,7 @@ export interface ChannelJobData {
     text: string;
     media: string[];
     attachments?: string[];
+    subject?: string;
     date: string;
     startDate?: string | null;
     type: PostType;

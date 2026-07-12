@@ -7,6 +7,8 @@ import { AbstractPostScheduler, ChannelJobData } from "../forwarding-message";
 import { Cron, CronExpression } from '@nestjs/schedule';
 import axios from 'axios';
 
+const DEFAULT_MAIL_SUBJECT = 'Важное уведомление';
+
 @Injectable()
 export class MailScheduler extends AbstractPostScheduler {
   protected readonly typePost = PostType.MAIL;
@@ -55,7 +57,7 @@ export class MailScheduler extends AbstractPostScheduler {
       startDate: post.startDate,
       type: post.type,
       targetUserIds: post.targetUserIds || [],
-      subject: 'Р’Р°Р¶РЅРѕРµ СѓРІРµРґРѕРјР»РµРЅРёРµ',
+      subject: DEFAULT_MAIL_SUBJECT,
     };
   }
 
